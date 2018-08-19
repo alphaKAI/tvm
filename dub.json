@@ -1,0 +1,13 @@
+{
+	"name": "tvm",
+	"authors": [
+		"庄司明洋"
+	],
+	"description": "A minimal D application.",
+	"copyright": "Copyright © 2018, 庄司明洋",
+	"license": "proprietary",
+	"dependencies": {
+		"kontainer":"*",
+		"pegged": "~>0.4.2"
+	}
+}
