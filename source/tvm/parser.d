@@ -4,7 +4,7 @@ import std.format, std.string;
 import std.conv;
 
 mixin(grammar(`
-JS:
+PARSER:
   TopLevel < StatementList / Statement
 
   Declare < FunctionDeclare / VariableDeclare
@@ -599,30 +599,30 @@ AST buildAST(ParseTree p) {
   writeln("p.name : ", p.name);
   */
   final switch (p.name) {
-  case "JS":
+  case "PARSER":
     auto e = p.children[0];
     return buildAST(e);
-  case "JS.TopLevel":
+  case "PARSER.TopLevel":
     auto e = p.children[0];
     return buildAST(e);
-  case "JS.Declare":
+  case "PARSER.Declare":
     auto e = p.children[0];
     return buildAST(e);
-  case "JS.VariableDeclare":
+  case "PARSER.VariableDeclare":
     auto e = p.children[0];
     return buildAST(e);
-  case "JS.VariableDeclareOnlySymbol":
+  case "PARSER.VariableDeclareOnlySymbol":
     auto e = p.children[0];
     LeftValue lvalue = cast(LeftValue)buildAST(e);
     assert(lvalue !is null, "Parse Error on VariableDeclareOnlySymbol");
     return new VariableDeclareOnlySymbol(lvalue);
-  case "JS.VariableDeclareWithAssign":
+  case "PARSER.VariableDeclareWithAssign":
     LeftValue e = cast(LeftValue)buildAST(p.children[0]);
     Value e2 = cast(Value)buildAST(p.children[1]);
     assert(e !is null, "Parse Error on VariableDeclareWithAssign, <e>");
     assert(e2 !is null, "Parse Error on VariableDeclareWithAssign, <e2>");
     return new VariableDeclareWithAssign(e, e2);
-  case "JS.FunctionDeclare":
+  case "PARSER.FunctionDeclare":
     Symbol symbol = cast(Symbol)buildAST(p.children[0]);
     ParameterList params = cast(ParameterList)buildAST(p.children[1]);
     Block block = cast(Block)buildAST(p.children[2]);
@@ -632,33 +632,33 @@ AST buildAST(ParseTree p) {
     assert(block !is null, "Parse Error on FunctionDeclare, <block>");
 
     return new FunctionDeclare(symbol, params, block);
-  case "JS.Symbol":
+  case "PARSER.Symbol":
     Identifier e = cast(Identifier)buildAST(p.children[0]);
     assert(e !is null, "Parse Error on Symbol");
     return symbol(e);
-  case "JS.Value":
+  case "PARSER.Value":
     auto e = p.children[0];
     return buildAST(e);
-  case "JS.LeftValue":
+  case "PARSER.LeftValue":
     auto e = p.children[0];
     return buildAST(e);
-  case "JS.Variable":
+  case "PARSER.Variable":
     Identifier e = cast(Identifier)buildAST(p.children[0]);
     assert(e !is null, "Parse Error on Variable");
     return variable(e);
-  case "JS.RightValue":
+  case "PARSER.RightValue":
     auto e = p.children[0];
     return buildAST(e);
-  case "JS.Integer":
+  case "PARSER.Integer":
     auto e = p.matches[0];
     return integer(e.to!long);
-  case "JS.StringLiteral":
+  case "PARSER.StringLiteral":
     auto e = p.matches[0];
     return stringLit(e);
-  case "JS.BooleanLiteral":
+  case "PARSER.BooleanLiteral":
     auto e = p.matches[0];
     return booleanLit(e.to!bool);
-  case "JS.ParameterList":
+  case "PARSER.ParameterList":
     auto params = p.children;
     Parameter[] s_params;
     foreach (param; params) {
@@ -668,14 +668,14 @@ AST buildAST(ParseTree p) {
     }
 
     return parameterList(s_params);
-  case "JS.Parameter":
+  case "PARSER.Parameter":
     Variable e = cast(Variable)buildAST(p.children[0]);
     assert(e !is null, "Parse Error on Parameter");
     return parameter(e);
-  case "JS.Statement":
+  case "PARSER.Statement":
     auto e = p.children[0];
     return buildAST(e);
-  case "JS.StatementList":
+  case "PARSER.StatementList":
     auto statements = p.children;
     Statement[] s_statements;
 
@@ -686,7 +686,7 @@ AST buildAST(ParseTree p) {
     }
 
     return statementList(s_statements);
-  case "JS.Block":
+  case "PARSER.Block":
     if (p.children.length) {
       StatementList e = cast(StatementList)buildAST(p.children[0]);
       assert(e !is null, "Parse Error on Block");
@@ -694,7 +694,7 @@ AST buildAST(ParseTree p) {
     } else {
       return new Block();
     }
-  case "JS.IFStatement":
+  case "PARSER.IFStatement":
     auto cond = cast(Expression)buildAST(p.children[0]);
     Block trueBlock = cast(Block)buildAST(p.children[1]);
     Block falseBlock;
@@ -702,114 +702,114 @@ AST buildAST(ParseTree p) {
       falseBlock = cast(Block)buildAST(p.children[2]);
     }
     return ifStatement(cond, trueBlock, falseBlock);
-  case "JS.AssignExpression":
+  case "PARSER.AssignExpression":
     LeftValue l = cast(LeftValue)buildAST(p.children[0]);
     assert(l !is null, "Parse Error on AssignExpression<l>");
     Value v = cast(Value)buildAST(p.children[1]);
     assert(v !is null, "Parse Error on AssignExpression<v>");
     return assignExpression(l, v);
-  case "JS.CompareExpression":
+  case "PARSER.CompareExpression":
     auto e = p.children[0];
     return buildAST(e);
-  case "JS.EqualExpression":
+  case "PARSER.EqualExpression":
     auto l = cast(Value)buildAST(p.children[0]);
     assert(l !is null, "Parse Error on %s<l>".format(p.name));
     auto r = cast(Value)buildAST(p.children[1]);
     assert(r !is null, "Parse Error on %s<r>".format(p.name));
     return equalExpression(l, r);
-  case "JS.LtExpression":
+  case "PARSER.LtExpression":
     auto l = cast(Value)buildAST(p.children[0]);
     assert(l !is null, "Parse Error on %s<l>".format(p.name));
     auto r = cast(Value)buildAST(p.children[1]);
     assert(r !is null, "Parse Error on %s<r>".format(p.name));
     return ltExpression(l, r);
-  case "JS.LteExpression":
+  case "PARSER.LteExpression":
     auto l = cast(Value)buildAST(p.children[0]);
     assert(l !is null, "Parse Error on %s<l>".format(p.name));
     auto r = cast(Value)buildAST(p.children[1]);
     assert(r !is null, "Parse Error on %s<r>".format(p.name));
     return lteExpression(l, r);
-  case "JS.GtExpression":
+  case "PARSER.GtExpression":
     auto l = cast(Value)buildAST(p.children[0]);
     assert(l !is null, "Parse Error on %s<l>".format(p.name));
     auto r = cast(Value)buildAST(p.children[1]);
     assert(r !is null, "Parse Error on %s<r>".format(p.name));
     return gtExpression(l, r);
-  case "JS.GteExpression":
+  case "PARSER.GteExpression":
     auto l = cast(Value)buildAST(p.children[0]);
     assert(l !is null, "Parse Error on %s<l>".format(p.name));
     auto r = cast(Value)buildAST(p.children[1]);
     assert(r !is null, "Parse Error on %s<r>".format(p.name));
     return gteExpression(l, r);
-  case "JS.LogicExpression":
+  case "PARSER.LogicExpression":
     auto e = p.children[0];
     return buildAST(e);
-  case "JS.AndExpression":
+  case "PARSER.AndExpression":
     auto l = cast(Value)buildAST(p.children[0]);
     assert(l !is null, "Parse Error on %s<l>".format(p.name));
     auto r = cast(Value)buildAST(p.children[1]);
     assert(r !is null, "Parse Error on %s<r>".format(p.name));
     return andExpression(l, r);
-  case "JS.OrExpression":
+  case "PARSER.OrExpression":
     auto l = cast(Value)buildAST(p.children[0]);
     assert(l !is null, "Parse Error on %s<l>".format(p.name));
     auto r = cast(Value)buildAST(p.children[1]);
     assert(r !is null, "Parse Error on %s<r>".format(p.name));
     return orExpression(l, r);
-  case "JS.XorExpression":
+  case "PARSER.XorExpression":
     auto l = cast(Value)buildAST(p.children[0]);
     assert(l !is null, "Parse Error on %s<l>".format(p.name));
     auto r = cast(Value)buildAST(p.children[1]);
     assert(r !is null, "Parse Error on %s<r>".format(p.name));
     return xorExpression(l, r);
-  case "JS.MathExpression":
+  case "PARSER.MathExpression":
     auto e = p.children[0];
     return buildAST(e);
-  case "JS.AddExpression":
+  case "PARSER.AddExpression":
     auto l = cast(Value)buildAST(p.children[0]);
     assert(l !is null, "Parse Error on %s<l>".format(p.name));
     auto r = cast(Value)buildAST(p.children[1]);
     assert(r !is null, "Parse Error on %s<r>".format(p.name));
     return addExpression(l, r);
-  case "JS.SubExpression":
+  case "PARSER.SubExpression":
     auto l = cast(Value)buildAST(p.children[0]);
     assert(l !is null, "Parse Error on %s<l>".format(p.name));
     auto r = cast(Value)buildAST(p.children[1]);
     assert(r !is null, "Parse Error on %s<r>".format(p.name));
     return subExpression(l, r);
-  case "JS.MulExpression":
+  case "PARSER.MulExpression":
     auto l = cast(Value)buildAST(p.children[0]);
     assert(l !is null, "Parse Error on %s<l>".format(p.name));
     auto r = cast(Value)buildAST(p.children[1]);
     assert(r !is null, "Parse Error on %s<r>".format(p.name));
     return mulExpression(l, r);
-  case "JS.DivExpression":
+  case "PARSER.DivExpression":
     auto l = cast(Value)buildAST(p.children[0]);
     assert(l !is null, "Parse Error on %s<l>".format(p.name));
     auto r = cast(Value)buildAST(p.children[1]);
     assert(r !is null, "Parse Error on %s<r>".format(p.name));
     return divExpression(l, r);
-  case "JS.ModExpression":
+  case "PARSER.ModExpression":
     auto l = cast(Value)buildAST(p.children[0]);
     assert(l !is null, "Parse Error on %s<l>".format(p.name));
     auto r = cast(Value)buildAST(p.children[1]);
     assert(r !is null, "Parse Error on %s<r>".format(p.name));
     return modExpression(l, r);
-  case "JS.CallExpression":
+  case "PARSER.CallExpression":
     Symbol funcSymbol = cast(Symbol)buildAST(p.children[0]);
     assert(funcSymbol !is null, "Parse Error on CallExpression<funcSymbol>");
     ParameterList params = cast(ParameterList)buildAST(p.children[1]);
     assert(params !is null, "Parse Error on CallExpression<params>");
 
     return callExpression(funcSymbol, params);
-  case "JS.ReturnExpression":
+  case "PARSER.ReturnExpression":
     Expression e = cast(Expression)buildAST(p.children[0]);
     assert(e !is null, "Parse Error on ReturnExpression");
     return returnExpression(e);
-  case "JS.Expression":
+  case "PARSER.Expression":
     auto e = p.children[0];
     return buildAST(e);
-  case "JS.Identifier":
+  case "PARSER.Identifier":
     auto e = p.matches[0];
     return ident(e);
   }

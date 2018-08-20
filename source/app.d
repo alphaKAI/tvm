@@ -33,6 +33,6 @@ void main() {
   foreach (test_case; test_cases) {
     writeln("----------------------------");
     writeln("source: ", test_case);
-    writeln(JS(test_case).buildAST);
+    writeln(PARSER(test_case).buildAST);
   }
 }
