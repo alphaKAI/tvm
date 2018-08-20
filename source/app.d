@@ -17,7 +17,17 @@ void main() {
       var b = 2;
       function add(a, b) { return a + b; }
       add(a, b);
-    }
+    }, "true", q{
+			if (1 == a) {
+				abc();
+			}
+		}, q{
+			if (a == b) {
+				return abc();
+			} else {
+				return def();
+			}
+		}, "a || b"
 	];
 
 	foreach (test_case; test_cases) {

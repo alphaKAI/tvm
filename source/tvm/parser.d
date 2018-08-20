@@ -21,7 +21,7 @@ JS:
   Value < LeftValue / RightValue
   LeftValue < Variable
   Variable < Identifier
-  RightValue < Integer / StringLiteral
+  RightValue < Integer / StringLiteral / BooleanLiteral
   AssignExpression < LeftValue "=" Value
   ReturnExpression < "return" Expression
   MathExpression < AddExpression / SubExpression / MulExpression / DivExpression / ModExpression
@@ -31,16 +31,33 @@ JS:
   DivExpression < Value "/" Value
   ModExpression < Value "%" Value
   CallExpression < Symbol ParameterList
-  Expression < AssignExpression / MathExpression / CallExpression / ReturnExpression / Value
+  
+  CompareExpression < EqualExpression / LtExpression / LteExpression / GtExpression / GteExpression
+  EqualExpression < Value "==" Value
+  LtExpression < Value "<" Value
+  LteExpression < Value "<=" Value
+  GtExpression < Value ">" Value
+  GteExpression < Value ">=" Value
 
-  Statement < FunctionDeclare / ((VariableDeclare / Expression) ";")
+  LogicExpression < AndExpression / OrExpression / XorExpression
+  AndExpression < Value "&&" Value
+  OrExpression < Value "||" Value
+  XorExpression < Value "^" Value
+
+  Expression < CompareExpression / LogicExpression / AssignExpression / MathExpression / CallExpression / ReturnExpression / Value
+
+  IFStatement < "if" :"(" Expression :")" Block ("else" Block)?
+
+  Statement < FunctionDeclare / IFStatement / ((VariableDeclare / Expression) ";")
   StatementList < Statement+
 
   Block < "{" StatementList? "}"
 
+  BooleanLiteral < "true" / "false"
+
   Integer <~ digit+
   Identifier <~ !Keyword [a-zA-Z_] [a-zA-Z0-9_]*
-  Keyword <- "function" "var"
+  Keyword <- "function" / "var" / "if" / "else" / "true" / "false"
   StringLiteral <~ doublequote (DQChar)* doublequote
   DQChar <- EscapeSequence / !doublequote .
   EscapeSequence <~ backslash ( quote
@@ -147,6 +164,21 @@ AST integer(long value) {
   return new Integer(value);
 }
 
+class BooleanLiteral : RightValue {
+  bool value;
+  this(bool value) {
+    this.value = value;
+  }
+
+  override string toString() {
+    return "Bool <%s>".format(this.value);
+  }
+}
+
+AST booleanLit(bool value) {
+  return new BooleanLiteral(value);
+}
+
 class Parameter : AST {
   Variable var;
   this(Variable var) {
@@ -217,6 +249,35 @@ class Block : AST {
       return "Block <Empty>";
     }
   }
+}
+
+class IFStatement : Statement {
+  Expression cond;
+  Block trueBlock;
+  Block falseBlock;
+  this(Expression cond, Block trueBlock) {
+    this.cond = cond;
+    this.trueBlock = trueBlock;
+  }
+
+  this(Expression cond, Block trueBlock, Block falseBlock) {
+    this.cond = cond;
+    this.trueBlock = trueBlock;
+    this.falseBlock = falseBlock;
+  }
+
+  override string toString() {
+    if (falseBlock is null) {
+      return "IFStatement <cond: %s, trueBlock: %s>".format(cond.toString, trueBlock.toString);
+    } else {
+      return "IFStatement <cond: %s, trueBlock: %s, falseBlock: %s>".format(cond.toString,
+          trueBlock.toString, falseBlock.toString);
+    }
+  }
+}
+
+AST ifStatement(Expression cond, Block trueBlock, Block falseBlock = null) {
+  return new IFStatement(cond, trueBlock, falseBlock);
 }
 
 interface Declare : Statement {
@@ -397,8 +458,146 @@ AST returnExpression(Expression expression) {
   return new ReturnExpression(expression);
 }
 
+interface CompareExpression : Expression {
+}
+
+class EqualExpression : CompareExpression {
+  Value lvalue, rvalue;
+  this(Value lvalue, Value rvalue) {
+    this.lvalue = lvalue;
+    this.rvalue = rvalue;
+  }
+
+  override string toString() {
+    return "CompareExpression <%s, %s>".format(lvalue.toString, rvalue.toString);
+  }
+}
+
+AST equalExpression(Value lvalue, Value rvalue) {
+  return new EqualExpression(lvalue, rvalue);
+}
+
+class LtExpression : CompareExpression {
+  Value lvalue, rvalue;
+  this(Value lvalue, Value rvalue) {
+    this.lvalue = lvalue;
+    this.rvalue = rvalue;
+  }
+
+  override string toString() {
+    return "LtExpression <%s, %s>".format(lvalue.toString, rvalue.toString);
+  }
+}
+
+AST ltExpression(Value lvalue, Value rvalue) {
+  return new LtExpression(lvalue, rvalue);
+}
+
+class LteExpression : CompareExpression {
+  Value lvalue, rvalue;
+  this(Value lvalue, Value rvalue) {
+    this.lvalue = lvalue;
+    this.rvalue = rvalue;
+  }
+
+  override string toString() {
+    return "LteExpression <%s, %s>".format(lvalue.toString, rvalue.toString);
+  }
+}
+
+AST lteExpression(Value lvalue, Value rvalue) {
+  return new LteExpression(lvalue, rvalue);
+}
+
+class GtExpression : CompareExpression {
+  Value lvalue, rvalue;
+  this(Value lvalue, Value rvalue) {
+    this.lvalue = lvalue;
+    this.rvalue = rvalue;
+  }
+
+  override string toString() {
+    return "GtExpression <%s, %s>".format(lvalue.toString, rvalue.toString);
+  }
+}
+
+AST gtExpression(Value lvalue, Value rvalue) {
+  return new GtExpression(lvalue, rvalue);
+}
+
+class GteExpression : CompareExpression {
+  Value lvalue, rvalue;
+  this(Value lvalue, Value rvalue) {
+    this.lvalue = lvalue;
+    this.rvalue = rvalue;
+  }
+
+  override string toString() {
+    return "GteExpression <%s, %s>".format(lvalue.toString, rvalue.toString);
+  }
+}
+
+AST gteExpression(Value lvalue, Value rvalue) {
+  return new GteExpression(lvalue, rvalue);
+}
+
+interface LogicExpression : Expression {
+}
+
+class AndExpression : LogicExpression {
+  Value lvalue, rvalue;
+  this(Value lvalue, Value rvalue) {
+    this.lvalue = lvalue;
+    this.rvalue = rvalue;
+  }
+
+  override string toString() {
+    return "AndExpression <%s, %s>".format(lvalue.toString, rvalue.toString);
+  }
+}
+
+AST andExpression(Value lvalue, Value rvalue) {
+  return new AndExpression(lvalue, rvalue);
+}
+
+class OrExpression : LogicExpression {
+  Value lvalue, rvalue;
+  this(Value lvalue, Value rvalue) {
+    this.lvalue = lvalue;
+    this.rvalue = rvalue;
+  }
+
+  override string toString() {
+    return "OrExpression <%s, %s>".format(lvalue.toString, rvalue.toString);
+  }
+}
+
+AST orExpression(Value lvalue, Value rvalue) {
+  return new OrExpression(lvalue, rvalue);
+}
+
+class XorExpression : LogicExpression {
+  Value lvalue, rvalue;
+  this(Value lvalue, Value rvalue) {
+    this.lvalue = lvalue;
+    this.rvalue = rvalue;
+  }
+
+  override string toString() {
+    return "XorExpression <%s, %s>".format(lvalue.toString, rvalue.toString);
+  }
+}
+
+AST xorExpression(Value lvalue, Value rvalue) {
+  return new XorExpression(lvalue, rvalue);
+}
+
 AST buildAST(ParseTree p) {
-  //writeln("p.name : ", p.name);
+  /*
+  import std.stdio;
+
+  writeln("p.name : ", p.name);
+  */
   final switch (p.name) {
   case "JS":
     auto e = p.children[0];
@@ -456,6 +655,9 @@ AST buildAST(ParseTree p) {
   case "JS.StringLiteral":
     auto e = p.matches[0];
     return stringLit(e);
+  case "JS.BooleanLiteral":
+    auto e = p.matches[0];
+    return booleanLit(e.to!bool);
   case "JS.ParameterList":
     auto params = p.children;
     Parameter[] s_params;
@@ -492,44 +694,106 @@ AST buildAST(ParseTree p) {
     } else {
       return new Block();
     }
+  case "JS.IFStatement":
+    auto cond = cast(Expression)buildAST(p.children[0]);
+    Block trueBlock = cast(Block)buildAST(p.children[1]);
+    Block falseBlock;
+    if (p.children.length == 3) {
+      falseBlock = cast(Block)buildAST(p.children[2]);
+    }
+    return ifStatement(cond, trueBlock, falseBlock);
   case "JS.AssignExpression":
     LeftValue l = cast(LeftValue)buildAST(p.children[0]);
     assert(l !is null, "Parse Error on AssignExpression<l>");
     Value v = cast(Value)buildAST(p.children[1]);
     assert(v !is null, "Parse Error on AssignExpression<v>");
     return assignExpression(l, v);
+  case "JS.CompareExpression":
+    auto e = p.children[0];
+    return buildAST(e);
+  case "JS.EqualExpression":
+    auto l = cast(Value)buildAST(p.children[0]);
+    assert(l !is null, "Parse Error on %s<l>".format(p.name));
+    auto r = cast(Value)buildAST(p.children[1]);
+    assert(r !is null, "Parse Error on %s<r>".format(p.name));
+    return equalExpression(l, r);
+  case "JS.LtExpression":
+    auto l = cast(Value)buildAST(p.children[0]);
+    assert(l !is null, "Parse Error on %s<l>".format(p.name));
+    auto r = cast(Value)buildAST(p.children[1]);
+    assert(r !is null, "Parse Error on %s<r>".format(p.name));
+    return ltExpression(l, r);
+  case "JS.LteExpression":
+    auto l = cast(Value)buildAST(p.children[0]);
+    assert(l !is null, "Parse Error on %s<l>".format(p.name));
+    auto r = cast(Value)buildAST(p.children[1]);
+    assert(r !is null, "Parse Error on %s<r>".format(p.name));
+    return lteExpression(l, r);
+  case "JS.GtExpression":
+    auto l = cast(Value)buildAST(p.children[0]);
+    assert(l !is null, "Parse Error on %s<l>".format(p.name));
+    auto r = cast(Value)buildAST(p.children[1]);
+    assert(r !is null, "Parse Error on %s<r>".format(p.name));
+    return gtExpression(l, r);
+  case "JS.GteExpression":
+    auto l = cast(Value)buildAST(p.children[0]);
+    assert(l !is null, "Parse Error on %s<l>".format(p.name));
+    auto r = cast(Value)buildAST(p.children[1]);
+    assert(r !is null, "Parse Error on %s<r>".format(p.name));
+    return gteExpression(l, r);
+  case "JS.LogicExpression":
+    auto e = p.children[0];
+    return buildAST(e);
+  case "JS.AndExpression":
+    auto l = cast(Value)buildAST(p.children[0]);
+    assert(l !is null, "Parse Error on %s<l>".format(p.name));
+    auto r = cast(Value)buildAST(p.children[1]);
+    assert(r !is null, "Parse Error on %s<r>".format(p.name));
+    return andExpression(l, r);
+  case "JS.OrExpression":
+    auto l = cast(Value)buildAST(p.children[0]);
+    assert(l !is null, "Parse Error on %s<l>".format(p.name));
+    auto r = cast(Value)buildAST(p.children[1]);
+    assert(r !is null, "Parse Error on %s<r>".format(p.name));
+    return orExpression(l, r);
+  case "JS.XorExpression":
+    auto l = cast(Value)buildAST(p.children[0]);
+    assert(l !is null, "Parse Error on %s<l>".format(p.name));
+    auto r = cast(Value)buildAST(p.children[1]);
+    assert(r !is null, "Parse Error on %s<r>".format(p.name));
+    return xorExpression(l, r);
   case "JS.MathExpression":
     auto e = p.children[0];
     return buildAST(e);
   case "JS.AddExpression":
-    Value l = cast(Value)buildAST(p.children[0]);
-    assert(l !is null, "Parse Error on AddExpression<l>");
-    Value r = cast(Value)buildAST(p.children[1]);
-    assert(r !is null, "Parse Error on AddExpression<r>");
+    auto l = cast(Value)buildAST(p.children[0]);
+    assert(l !is null, "Parse Error on %s<l>".format(p.name));
+    auto r = cast(Value)buildAST(p.children[1]);
+    assert(r !is null, "Parse Error on %s<r>".format(p.name));
     return addExpression(l, r);
   case "JS.SubExpression":
-    Value l = cast(Value)buildAST(p.children[0]);
-    assert(l !is null, "Parse Error on SubExpression<l>");
-    Value r = cast(Value)buildAST(p.children[1]);
-    assert(r !is null, "Parse Error on SubExpression<r>");
+    auto l = cast(Value)buildAST(p.children[0]);
+    assert(l !is null, "Parse Error on %s<l>".format(p.name));
+    auto r = cast(Value)buildAST(p.children[1]);
+    assert(r !is null, "Parse Error on %s<r>".format(p.name));
     return subExpression(l, r);
   case "JS.MulExpression":
-    Value l = cast(Value)buildAST(p.children[0]);
-    assert(l !is null, "Parse Error on MulExpression<l>");
-    Value r = cast(Value)buildAST(p.children[1]);
-    assert(r !is null, "Parse Error on MulExpression<r>");
+    auto l = cast(Value)buildAST(p.children[0]);
+    assert(l !is null, "Parse Error on %s<l>".format(p.name));
+    auto r = cast(Value)buildAST(p.children[1]);
+    assert(r !is null, "Parse Error on %s<r>".format(p.name));
     return mulExpression(l, r);
   case "JS.DivExpression":
-    Value l = cast(Value)buildAST(p.children[0]);
-    assert(l !is null, "Parse Error on DivExpression<l>");
-    Value r = cast(Value)buildAST(p.children[1]);
-    assert(r !is null, "Parse Error on DivExpression<r>");
+    auto l = cast(Value)buildAST(p.children[0]);
+    assert(l !is null, "Parse Error on %s<l>".format(p.name));
+    auto r = cast(Value)buildAST(p.children[1]);
+    assert(r !is null, "Parse Error on %s<r>".format(p.name));
     return divExpression(l, r);
   case "JS.ModExpression":
-    Value l = cast(Value)buildAST(p.children[0]);
-    assert(l !is null, "Parse Error on ModExpression<l>");
-    Value r = cast(Value)buildAST(p.children[1]);
-    assert(r !is null, "Parse Error on ModExpression<r>");
+    auto l = cast(Value)buildAST(p.children[0]);
+    assert(l !is null, "Parse Error on %s<l>".format(p.name));
+    auto r = cast(Value)buildAST(p.children[1]);
+    assert(r !is null, "Parse Error on %s<r>".format(p.name));
     return modExpression(l, r);
   case "JS.CallExpression":
     Symbol funcSymbol = cast(Symbol)buildAST(p.children[0]);
