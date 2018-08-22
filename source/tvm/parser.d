@@ -68,8 +68,51 @@ PARSER:
                               )
 `));
 
+enum ASTType {
+  tIdentifier,
+  tSymbol,
+  tParens,
+  tVariable,
+  tStringLiteral,
+  tInteger,
+  tBooleanLiteral,
+  tParameter,
+  tParameterList,
+  tStatementList,
+  tBlock,
+  tIFStatement,
+  tFunctionDeclare,
+  tVariableDeclareOnlySymbol,
+  tVariableDeclareWithAssign,
+  tAssignExpression,
+  tAddExpression,
+  tSubExpression,
+  tMulExpression,
+  tDivExpression,
+  tModExpression,
+  tCallExpression,
+  tReturnExpression,
+  tEqualExpression,
+  tLtExpression,
+  tLteExpression,
+  tGtExpression,
+  tGteExpression,
+  tAndExpression,
+  tOrExpression,
+  tXorExpression
+}
+
+string genTypeMethod(T)() {
+  return q{
+    ASTType type() {
+      return ASTType.t%s;
+    }
+  }.format(T.stringof);
+}
+
 interface AST {
   string toString();
+  ASTType type();
 }
 
 class Identifier : AST {
@@ -81,6 +124,8 @@ class Identifier : AST {
   override string toString() {
     return "Identifier <%s>".format(this.value);
   }
+
+  mixin(genTypeMethod!(typeof(this)));
 }
 
 AST ident(string value) {
@@ -96,6 +141,8 @@ class Symbol : AST {
   override string toString() {
     return "Symbol <%s>".format(ident.toString);
   }
+
+  mixin(genTypeMethod!(typeof(this)));
 }
 
 AST symbol(Identifier ident) {
@@ -121,6 +168,8 @@ class Parens : Expression {
   override string toString() {
     return "Parens <%s>".format(this.expression.toString);
   }
+
+  mixin(genTypeMethod!(typeof(this)));
 }
 
 AST parens(Expression expression) {
@@ -142,6 +191,8 @@ class Variable : LeftValue {
   override string toString() {
     return "Variable <%s>".format(ident.toString);
   }
+
+  mixin(genTypeMethod!(typeof(this)));
 }
 
 AST variable(Identifier ident) {
@@ -160,6 +211,8 @@ class StringLiteral : RightValue {
   override string toString() {
     return "StringLiteral <%s>".format(this.value);
   }
+
+  mixin(genTypeMethod!(typeof(this)));
 }
 
 AST stringLit(string value) {
@@ -175,6 +228,8 @@ class Integer : RightValue {
   override string toString() {
     return "Integer <%s>".format(this.value);
   }
+
+  mixin(genTypeMethod!(typeof(this)));
 }
 
 AST integer(long value) {
@@ -190,6 +245,8 @@ class BooleanLiteral : RightValue {
   override string toString() {
     return "Bool <%s>".format(this.value);
   }
+
+  mixin(genTypeMethod!(typeof(this)));
 }
 
 AST booleanLit(bool value) {
@@ -205,6 +262,8 @@ class Parameter : AST {
   override string toString() {
     return "Parameter <%s>".format(expr.toString);
   }
+
+  mixin(genTypeMethod!(typeof(this)));
 }
 
 AST parameter(Expression expr) {
@@ -224,6 +283,8 @@ class ParameterList : AST {
     }
     return "ParamterList <[%s]>".format(s_parameters.join(", "));
   }
+
+  mixin(genTypeMethod!(typeof(this)));
 }
 
 AST parameterList(Parameter[] parameters) {
@@ -244,6 +305,8 @@ class StatementList : TopLevel {
     }
     return "StatementList <[%s]>".format(s_statements.join(", "));
   }
+
+  mixin(genTypeMethod!(typeof(this)));
 }
 
 AST statementList(Statement[] statements) {
@@ -266,6 +329,8 @@ class Block : AST {
       return "Block <Empty>";
     }
   }
+
+  mixin(genTypeMethod!(typeof(this)));
 }
 
 class IFStatement : Statement {
@@ -291,6 +356,8 @@ class IFStatement : Statement {
           trueBlock.toString, falseBlock.toString);
     }
   }
+
+  mixin(genTypeMethod!(typeof(this)));
 }
 
 AST ifStatement(Expression cond, Block trueBlock, Block falseBlock = null) {
@@ -314,6 +381,8 @@ class FunctionDeclare : Declare {
     return "FunctionDeclare <Name:%s, ParameterList: %s, Block: %s>".format(symbol.toString,
         parameters.toString, block.toString);
   }
+
+  mixin(genTypeMethod!(typeof(this)));
 }
 
 interface VariableDeclare : Declare {
@@ -328,6 +397,8 @@ class VariableDeclareOnlySymbol : VariableDeclare {
   override string toString() {
     return "VariableDeclareOnlySymbol <%s>".format(lvalue.toString);
   }
+
+  mixin(genTypeMethod!(typeof(this)));
 }
 
 class VariableDeclareWithAssign : VariableDeclare {
@@ -341,6 +412,8 @@ class VariableDeclareWithAssign : VariableDeclare {
   override string toString() {
     return "VariableDeclareWithAssign <%s, %s>".format(lvalue.toString, expr.toString);
   }
+
+  mixin(genTypeMethod!(typeof(this)));
 }
 
 class AssignExpression : Expression {
@@ -354,6 +427,8 @@ class AssignExpression : Expression {
   override string toString() {
     return "AssignExpression <%s, %s>".format(lvalue.toString, expr.toString);
   }
+
+  mixin(genTypeMethod!(typeof(this)));
 }
 
 AST assignExpression(LeftValue lvalue, Expression expr) {
@@ -373,6 +448,8 @@ class AddExpression : MathExpression {
   override string toString() {
     return "AddExpression <%s, %s>".format(lexpr.toString, rexpr.toString);
   }
+
+  mixin(genTypeMethod!(typeof(this)));
 }
 
 AST addExpression(Expression lexpr, Expression rexpr) {
@@ -389,6 +466,8 @@ class SubExpression : MathExpression {
   override string toString() {
     return "SubExpression <%s, %s>".format(lexpr.toString, rexpr.toString);
   }
+
+  mixin(genTypeMethod!(typeof(this)));
 }
 
 AST subExpression(Expression lexpr, Expression rexpr) {
@@ -405,6 +484,8 @@ class MulExpression : MathExpression {
   override string toString() {
     return "MulExpression <%s, %s>".format(lexpr.toString, rexpr.toString);
   }
+
+  mixin(genTypeMethod!(typeof(this)));
 }
 
 AST mulExpression(Expression lexpr, Expression rexpr) {
@@ -421,6 +502,8 @@ class DivExpression : MathExpression {
   override string toString() {
     return "DivExpression <%s, %s>".format(lexpr.toString, rexpr.toString);
   }
+
+  mixin(genTypeMethod!(typeof(this)));
 }
 
 AST divExpression(Expression lexpr, Expression rexpr) {
@@ -437,6 +520,8 @@ class ModExpression : MathExpression {
   override string toString() {
     return "ModExpression <%s, %s>".format(lexpr.toString, rexpr.toString);
   }
+
+  mixin(genTypeMethod!(typeof(this)));
 }
 
 AST modExpression(Expression lexpr, Expression rexpr) {
@@ -454,6 +539,8 @@ class CallExpression : Expression {
   override string toString() {
     return "CallExpression <%s, ParameterList: %s>".format(symbol.toString, parameters.toString);
   }
+
+  mixin(genTypeMethod!(typeof(this)));
 }
 
 AST callExpression(Symbol symbol, ParameterList parameters) {
@@ -469,6 +556,8 @@ class ReturnExpression : Expression {
   override string toString() {
     return "ReturnExpression <%s>".format(expression.toString);
   }
+
+  mixin(genTypeMethod!(typeof(this)));
 }
 
 AST returnExpression(Expression expression) {
@@ -488,6 +577,8 @@ class EqualExpression : CompareExpression {
   override string toString() {
     return "CompareExpression <%s, %s>".format(lexpr.toString, rexpr.toString);
   }
+
+  mixin(genTypeMethod!(typeof(this)));
 }
 
 AST equalExpression(Expression lexpr, Expression rexpr) {
@@ -504,6 +595,8 @@ class LtExpression : CompareExpression {
   override string toString() {
     return "LtExpression <%s, %s>".format(lexpr.toString, rexpr.toString);
   }
+
+  mixin(genTypeMethod!(typeof(this)));
 }
 
 AST ltExpression(Expression lexpr, Expression rexpr) {
@@ -520,6 +613,8 @@ class LteExpression : CompareExpression {
   override string toString() {
     return "LteExpression <%s, %s>".format(lexpr.toString, rexpr.toString);
   }
+
+  mixin(genTypeMethod!(typeof(this)));
 }
 
 AST lteExpression(Expression lexpr, Expression rexpr) {
@@ -536,6 +631,8 @@ class GtExpression : CompareExpression {
   override string toString() {
     return "GtExpression <%s, %s>".format(lexpr.toString, rexpr.toString);
   }
+
+  mixin(genTypeMethod!(typeof(this)));
 }
 
 AST gtExpression(Expression lexpr, Expression rexpr) {
@@ -552,6 +649,8 @@ class GteExpression : CompareExpression {
   override string toString() {
     return "GteExpression <%s, %s>".format(lexpr.toString, rexpr.toString);
   }
+
+  mixin(genTypeMethod!(typeof(this)));
 }
 
 AST gteExpression(Expression lexpr, Expression rexpr) {
@@ -571,6 +670,8 @@ class AndExpression : LogicExpression {
   override string toString() {
     return "AndExpression <%s, %s>".format(lexpr.toString, rexpr.toString);
   }
+
+  mixin(genTypeMethod!(typeof(this)));
 }
 
 AST andExpression(Expression lexpr, Expression rexpr) {
@@ -587,6 +688,8 @@ class OrExpression : LogicExpression {
   override string toString() {
     return "OrExpression <%s, %s>".format(lexpr.toString, rexpr.toString);
   }
+
+  mixin(genTypeMethod!(typeof(this)));
 }
 
 AST orExpression(Expression lexpr, Expression rexpr) {
@@ -603,6 +706,8 @@ class XorExpression : LogicExpression {
   override string toString() {
     return "XorExpression <%s, %s>".format(lexpr.toString, rexpr.toString);
   }
+
+  mixin(genTypeMethod!(typeof(this)));
 }
 
 AST xorExpression(Expression lexpr, Expression rexpr) {
