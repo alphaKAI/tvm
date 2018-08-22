@@ -618,17 +618,16 @@ AST buildAST(ParseTree p) {
     return new VariableDeclareOnlySymbol(lvalue);
   case "PARSER.VariableDeclareWithAssign":
     LeftValue e = cast(LeftValue)buildAST(p.children[0]);
-    Value e2 = cast(Value)buildAST(p.children[1]);
     assert(e !is null, "Parse Error on VariableDeclareWithAssign, <e>");
+    Value e2 = cast(Value)buildAST(p.children[1]);
     assert(e2 !is null, "Parse Error on VariableDeclareWithAssign, <e2>");
     return new VariableDeclareWithAssign(e, e2);
   case "PARSER.FunctionDeclare":
     Symbol symbol = cast(Symbol)buildAST(p.children[0]);
-    ParameterList params = cast(ParameterList)buildAST(p.children[1]);
-    Block block = cast(Block)buildAST(p.children[2]);
-
     assert(symbol !is null, "Parse Error on FunctionDeclare, <symbol>");
+    ParameterList params = cast(ParameterList)buildAST(p.children[1]);
     assert(params !is null, "Parse Error on FunctionDeclare, <params>");
+    Block block = cast(Block)buildAST(p.children[2]);
     assert(block !is null, "Parse Error on FunctionDeclare, <block>");
 
     return new FunctionDeclare(symbol, params, block);
@@ -696,10 +695,13 @@ AST buildAST(ParseTree p) {
     }
   case "PARSER.IFStatement":
     auto cond = cast(Expression)buildAST(p.children[0]);
+    assert(cond !is null, "Parse Error on IFStatement <cond>");
     Block trueBlock = cast(Block)buildAST(p.children[1]);
+    assert(trueBlock !is null, "Parse Error on IFStatement <trueBlock>");
     Block falseBlock;
     if (p.children.length == 3) {
       falseBlock = cast(Block)buildAST(p.children[2]);
+      assert(falseBlock !is null, "Parse Error on IFStatement <falseBlock>");
     }
     return ifStatement(cond, trueBlock, falseBlock);
   case "PARSER.AssignExpression":
