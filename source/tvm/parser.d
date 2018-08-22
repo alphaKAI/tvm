@@ -13,38 +13,39 @@ PARSER:
 
   VariableDeclare < VariableDeclareWithAssign / VariableDeclareOnlySymbol
   VariableDeclareOnlySymbol < "var" LeftValue
-  VariableDeclareWithAssign < "var" LeftValue "=" Value
+  VariableDeclareWithAssign < "var" LeftValue "=" Expression
 
   ParameterList < "()" / :"(" Parameter ("," Parameter)* :")"
-  Parameter < Variable
+  Parameter < Expression
 
   Value < LeftValue / RightValue
   LeftValue < Variable
   Variable < Identifier
   RightValue < Integer / StringLiteral / BooleanLiteral
-  AssignExpression < LeftValue "=" Value
+  AssignExpression < LeftValue "=" Expression
   ReturnExpression < "return" Expression
   MathExpression < AddExpression / SubExpression / MulExpression / DivExpression / ModExpression
-  AddExpression < Value "+" Value
-  SubExpression < Value "-" Value
-  MulExpression < Value "*" Value
-  DivExpression < Value "/" Value
-  ModExpression < Value "%" Value
+  AddExpression < Expression "+" Expression
+  SubExpression < Expression "-" Expression
+  MulExpression < Expression "*" Expression
+  DivExpression < Expression "/" Expression
+  ModExpression < Expression "%" Expression
   CallExpression < Symbol ParameterList
   
   CompareExpression < EqualExpression / LtExpression / LteExpression / GtExpression / GteExpression
-  EqualExpression < Value "==" Value
-  LtExpression < Value "<" Value
-  LteExpression < Value "<=" Value
-  GtExpression < Value ">" Value
-  GteExpression < Value ">=" Value
+  EqualExpression < Expression "==" Expression
+  LtExpression < Expression "<" Expression
+  LteExpression < Expression "<=" Expression
+  GtExpression < Expression ">" Expression
+  GteExpression < Expression ">=" Expression
 
   LogicExpression < AndExpression / OrExpression / XorExpression
-  AndExpression < Value "&&" Value
-  OrExpression < Value "||" Value
-  XorExpression < Value "^" Value
+  AndExpression < Expression "&&" Expression
+  OrExpression < Expression "||" Expression
+  XorExpression < Expression "^" Expression
 
-  Expression < CompareExpression / LogicExpression / AssignExpression / MathExpression / CallExpression / ReturnExpression / Value
+  Expression < CompareExpression / LogicExpression / AssignExpression / MathExpression / Parens / CallExpression / ReturnExpression / Value
+  Parens < :"(" Expression :")"
 
   IFStatement < "if" :"(" Expression :")" Block ("else" Block)?
 
@@ -108,6 +109,22 @@ interface Statement : TopLevel {
 }
 
 interface Expression : Statement {
+}
+
+class Parens : Expression {
+  Expression expression;
+
+  this(Expression expression) {
+    this.expression = expression;
+  }
+
+  override string toString() {
+    return "Parens <%s>".format(this.expression.toString);
+  }
+}
+
+AST parens(Expression expression) {
+  return new Parens(expression);
 }
 
 interface Value : AST, Expression {
@@ -180,18 +197,18 @@ AST booleanLit(bool value) {
 }
 
 class Parameter : AST {
-  Variable var;
-  this(Variable var) {
-    this.var = var;
+  Expression expr;
+  this(Expression expr) {
+    this.expr = expr;
   }
 
   override string toString() {
-    return "Parameter <%s>".format(var.toString);
+    return "Parameter <%s>".format(expr.toString);
   }
 }
 
-AST parameter(Variable var) {
-  return new Parameter(var);
+AST parameter(Expression expr) {
+  return new Parameter(expr);
 }
 
 class ParameterList : AST {
@@ -315,115 +332,115 @@ class VariableDeclareOnlySymbol : VariableDeclare {
 
 class VariableDeclareWithAssign : VariableDeclare {
   LeftValue lvalue;
-  Value value;
-  this(LeftValue lvalue, Value value) {
+  Expression expr;
+  this(LeftValue lvalue, Expression expr) {
     this.lvalue = lvalue;
-    this.value = value;
+    this.expr = expr;
   }
 
   override string toString() {
-    return "VariableDeclareWithAssign <%s, %s>".format(lvalue.toString, value.toString);
+    return "VariableDeclareWithAssign <%s, %s>".format(lvalue.toString, expr.toString);
   }
 }
 
 class AssignExpression : Expression {
   LeftValue lvalue;
-  Value value;
-  this(LeftValue lvalue, Value value) {
+  Expression expr;
+  this(LeftValue lvalue, Expression expr) {
     this.lvalue = lvalue;
-    this.value = value;
+    this.expr = expr;
   }
 
   override string toString() {
-    return "AssignExpression <%s, %s>".format(lvalue.toString, value.toString);
+    return "AssignExpression <%s, %s>".format(lvalue.toString, expr.toString);
   }
 }
 
-AST assignExpression(LeftValue lvalue, Value value) {
-  return new AssignExpression(lvalue, value);
+AST assignExpression(LeftValue lvalue, Expression expr) {
+  return new AssignExpression(lvalue, expr);
 }
 
 interface MathExpression : Expression {
 }
 
 class AddExpression : MathExpression {
-  Value lvalue, rvalue;
-  this(Value lvalue, Value rvalue) {
-    this.lvalue = lvalue;
-    this.rvalue = rvalue;
+  Expression lexpr, rexpr;
+  this(Expression lexpr, Expression rexpr) {
+    this.lexpr = lexpr;
+    this.rexpr = rexpr;
   }
 
   override string toString() {
-    return "AddExpression <%s, %s>".format(lvalue.toString, rvalue.toString);
+    return "AddExpression <%s, %s>".format(lexpr.toString, rexpr.toString);
   }
 }
 
-AST addExpression(Value lvalue, Value rvalue) {
-  return new AddExpression(lvalue, rvalue);
+AST addExpression(Expression lexpr, Expression rexpr) {
+  return new AddExpression(lexpr, rexpr);
 }
 
 class SubExpression : MathExpression {
-  Value lvalue, rvalue;
-  this(Value lvalue, Value rvalue) {
-    this.lvalue = lvalue;
-    this.rvalue = rvalue;
+  Expression lexpr, rexpr;
+  this(Expression lexpr, Expression rexpr) {
+    this.lexpr = lexpr;
+    this.rexpr = rexpr;
   }
 
   override string toString() {
-    return "SubExpression <%s, %s>".format(lvalue.toString, rvalue.toString);
+    return "SubExpression <%s, %s>".format(lexpr.toString, rexpr.toString);
   }
 }
 
-AST subExpression(Value lvalue, Value rvalue) {
-  return new SubExpression(lvalue, rvalue);
+AST subExpression(Expression lexpr, Expression rexpr) {
+  return new SubExpression(lexpr, rexpr);
 }
 
 class MulExpression : MathExpression {
-  Value lvalue, rvalue;
-  this(Value lvalue, Value rvalue) {
-    this.lvalue = lvalue;
-    this.rvalue = rvalue;
+  Expression lexpr, rexpr;
+  this(Expression lexpr, Expression rexpr) {
+    this.lexpr = lexpr;
+    this.rexpr = rexpr;
   }
 
   override string toString() {
-    return "MulExpression <%s, %s>".format(lvalue.toString, rvalue.toString);
+    return "MulExpression <%s, %s>".format(lexpr.toString, rexpr.toString);
   }
 }
 
-AST mulExpression(Value lvalue, Value rvalue) {
-  return new MulExpression(lvalue, rvalue);
+AST mulExpression(Expression lexpr, Expression rexpr) {
+  return new MulExpression(lexpr, rexpr);
 }
 
 class DivExpression : MathExpression {
-  Value lvalue, rvalue;
-  this(Value lvalue, Value rvalue) {
-    this.lvalue = lvalue;
-    this.rvalue = rvalue;
+  Expression lexpr, rexpr;
+  this(Expression lexpr, Expression rexpr) {
+    this.lexpr = lexpr;
+    this.rexpr = rexpr;
   }
 
   override string toString() {
-    return "DivExpression <%s, %s>".format(lvalue.toString, rvalue.toString);
+    return "DivExpression <%s, %s>".format(lexpr.toString, rexpr.toString);
   }
 }
 
-AST divExpression(Value lvalue, Value rvalue) {
-  return new DivExpression(lvalue, rvalue);
+AST divExpression(Expression lexpr, Expression rexpr) {
+  return new DivExpression(lexpr, rexpr);
 }
 
 class ModExpression : MathExpression {
-  Value lvalue, rvalue;
-  this(Value lvalue, Value rvalue) {
-    this.lvalue = lvalue;
-    this.rvalue = rvalue;
+  Expression lexpr, rexpr;
+  this(Expression lexpr, Expression rexpr) {
+    this.lexpr = lexpr;
+    this.rexpr = rexpr;
   }
 
   override string toString() {
-    return "ModExpression <%s, %s>".format(lvalue.toString, rvalue.toString);
+    return "ModExpression <%s, %s>".format(lexpr.toString, rexpr.toString);
   }
 }
 
-AST modExpression(Value lvalue, Value rvalue) {
-  return new ModExpression(lvalue, rvalue);
+AST modExpression(Expression lexpr, Expression rexpr) {
+  return new ModExpression(lexpr, rexpr);
 }
 
 class CallExpression : Expression {
@@ -462,134 +479,134 @@ interface CompareExpression : Expression {
 }
 
 class EqualExpression : CompareExpression {
-  Value lvalue, rvalue;
-  this(Value lvalue, Value rvalue) {
-    this.lvalue = lvalue;
-    this.rvalue = rvalue;
+  Expression lexpr, rexpr;
+  this(Expression lexpr, Expression rexpr) {
+    this.lexpr = lexpr;
+    this.rexpr = rexpr;
   }
 
   override string toString() {
-    return "CompareExpression <%s, %s>".format(lvalue.toString, rvalue.toString);
+    return "CompareExpression <%s, %s>".format(lexpr.toString, rexpr.toString);
   }
 }
 
-AST equalExpression(Value lvalue, Value rvalue) {
-  return new EqualExpression(lvalue, rvalue);
+AST equalExpression(Expression lexpr, Expression rexpr) {
+  return new EqualExpression(lexpr, rexpr);
 }
 
 class LtExpression : CompareExpression {
-  Value lvalue, rvalue;
-  this(Value lvalue, Value rvalue) {
-    this.lvalue = lvalue;
-    this.rvalue = rvalue;
+  Expression lexpr, rexpr;
+  this(Expression lexpr, Expression rexpr) {
+    this.lexpr = lexpr;
+    this.rexpr = rexpr;
   }
 
   override string toString() {
-    return "LtExpression <%s, %s>".format(lvalue.toString, rvalue.toString);
+    return "LtExpression <%s, %s>".format(lexpr.toString, rexpr.toString);
   }
 }
 
-AST ltExpression(Value lvalue, Value rvalue) {
-  return new LtExpression(lvalue, rvalue);
+AST ltExpression(Expression lexpr, Expression rexpr) {
+  return new LtExpression(lexpr, rexpr);
 }
 
 class LteExpression : CompareExpression {
-  Value lvalue, rvalue;
-  this(Value lvalue, Value rvalue) {
-    this.lvalue = lvalue;
-    this.rvalue = rvalue;
+  Expression lexpr, rexpr;
+  this(Expression lexpr, Expression rexpr) {
+    this.lexpr = lexpr;
+    this.rexpr = rexpr;
   }
 
   override string toString() {
-    return "LteExpression <%s, %s>".format(lvalue.toString, rvalue.toString);
+    return "LteExpression <%s, %s>".format(lexpr.toString, rexpr.toString);
   }
 }
 
-AST lteExpression(Value lvalue, Value rvalue) {
-  return new LteExpression(lvalue, rvalue);
+AST lteExpression(Expression lexpr, Expression rexpr) {
+  return new LteExpression(lexpr, rexpr);
 }
 
 class GtExpression : CompareExpression {
-  Value lvalue, rvalue;
-  this(Value lvalue, Value rvalue) {
-    this.lvalue = lvalue;
-    this.rvalue = rvalue;
+  Expression lexpr, rexpr;
+  this(Expression lexpr, Expression rexpr) {
+    this.lexpr = lexpr;
+    this.rexpr = rexpr;
   }
 
   override string toString() {
-    return "GtExpression <%s, %s>".format(lvalue.toString, rvalue.toString);
+    return "GtExpression <%s, %s>".format(lexpr.toString, rexpr.toString);
   }
 }
 
-AST gtExpression(Value lvalue, Value rvalue) {
-  return new GtExpression(lvalue, rvalue);
+AST gtExpression(Expression lexpr, Expression rexpr) {
+  return new GtExpression(lexpr, rexpr);
 }
 
 class GteExpression : CompareExpression {
-  Value lvalue, rvalue;
-  this(Value lvalue, Value rvalue) {
-    this.lvalue = lvalue;
-    this.rvalue = rvalue;
+  Expression lexpr, rexpr;
+  this(Expression lexpr, Expression rexpr) {
+    this.lexpr = lexpr;
+    this.rexpr = rexpr;
   }
 
   override string toString() {
-    return "GteExpression <%s, %s>".format(lvalue.toString, rvalue.toString);
+    return "GteExpression <%s, %s>".format(lexpr.toString, rexpr.toString);
   }
 }
 
-AST gteExpression(Value lvalue, Value rvalue) {
-  return new GteExpression(lvalue, rvalue);
+AST gteExpression(Expression lexpr, Expression rexpr) {
+  return new GteExpression(lexpr, rexpr);
 }
 
 interface LogicExpression : Expression {
 }
 
 class AndExpression : LogicExpression {
-  Value lvalue, rvalue;
-  this(Value lvalue, Value rvalue) {
-    this.lvalue = lvalue;
-    this.rvalue = rvalue;
+  Expression lexpr, rexpr;
+  this(Expression lexpr, Expression rexpr) {
+    this.lexpr = lexpr;
+    this.rexpr = rexpr;
   }
 
   override string toString() {
-    return "AndExpression <%s, %s>".format(lvalue.toString, rvalue.toString);
+    return "AndExpression <%s, %s>".format(lexpr.toString, rexpr.toString);
   }
 }
 
-AST andExpression(Value lvalue, Value rvalue) {
-  return new AndExpression(lvalue, rvalue);
+AST andExpression(Expression lexpr, Expression rexpr) {
+  return new AndExpression(lexpr, rexpr);
 }
 
 class OrExpression : LogicExpression {
-  Value lvalue, rvalue;
-  this(Value lvalue, Value rvalue) {
-    this.lvalue = lvalue;
-    this.rvalue = rvalue;
+  Expression lexpr, rexpr;
+  this(Expression lexpr, Expression rexpr) {
+    this.lexpr = lexpr;
+    this.rexpr = rexpr;
   }
 
   override string toString() {
-    return "OrExpression <%s, %s>".format(lvalue.toString, rvalue.toString);
+    return "OrExpression <%s, %s>".format(lexpr.toString, rexpr.toString);
   }
 }
 
-AST orExpression(Value lvalue, Value rvalue) {
-  return new OrExpression(lvalue, rvalue);
+AST orExpression(Expression lexpr, Expression rexpr) {
+  return new OrExpression(lexpr, rexpr);
 }
 
 class XorExpression : LogicExpression {
-  Value lvalue, rvalue;
-  this(Value lvalue, Value rvalue) {
-    this.lvalue = lvalue;
-    this.rvalue = rvalue;
+  Expression lexpr, rexpr;
+  this(Expression lexpr, Expression rexpr) {
+    this.lexpr = lexpr;
+    this.rexpr = rexpr;
   }
 
   override string toString() {
-    return "XorExpression <%s, %s>".format(lvalue.toString, rvalue.toString);
+    return "XorExpression <%s, %s>".format(lexpr.toString, rexpr.toString);
   }
 }
 
-AST xorExpression(Value lvalue, Value rvalue) {
-  return new XorExpression(lvalue, rvalue);
+AST xorExpression(Expression lexpr, Expression rexpr) {
+  return new XorExpression(lexpr, rexpr);
 }
 
 AST buildAST(ParseTree p) {
@@ -619,7 +636,7 @@ AST buildAST(ParseTree p) {
   case "PARSER.VariableDeclareWithAssign":
     LeftValue e = cast(LeftValue)buildAST(p.children[0]);
     assert(e !is null, "Parse Error on VariableDeclareWithAssign, <e>");
-    Value e2 = cast(Value)buildAST(p.children[1]);
+    Expression e2 = cast(Expression)buildAST(p.children[1]);
     assert(e2 !is null, "Parse Error on VariableDeclareWithAssign, <e2>");
     return new VariableDeclareWithAssign(e, e2);
   case "PARSER.FunctionDeclare":
@@ -668,7 +685,7 @@ AST buildAST(ParseTree p) {
 
     return parameterList(s_params);
   case "PARSER.Parameter":
-    Variable e = cast(Variable)buildAST(p.children[0]);
+    Expression e = cast(Expression)buildAST(p.children[0]);
     assert(e !is null, "Parse Error on Parameter");
     return parameter(e);
   case "PARSER.Statement":
@@ -707,94 +724,94 @@ AST buildAST(ParseTree p) {
   case "PARSER.AssignExpression":
     LeftValue l = cast(LeftValue)buildAST(p.children[0]);
     assert(l !is null, "Parse Error on AssignExpression<l>");
-    Value v = cast(Value)buildAST(p.children[1]);
+    Expression v = cast(Expression)buildAST(p.children[1]);
     assert(v !is null, "Parse Error on AssignExpression<v>");
     return assignExpression(l, v);
   case "PARSER.CompareExpression":
     auto e = p.children[0];
     return buildAST(e);
   case "PARSER.EqualExpression":
-    auto l = cast(Value)buildAST(p.children[0]);
+    auto l = cast(Expression)buildAST(p.children[0]);
     assert(l !is null, "Parse Error on %s<l>".format(p.name));
-    auto r = cast(Value)buildAST(p.children[1]);
+    auto r = cast(Expression)buildAST(p.children[1]);
     assert(r !is null, "Parse Error on %s<r>".format(p.name));
     return equalExpression(l, r);
   case "PARSER.LtExpression":
-    auto l = cast(Value)buildAST(p.children[0]);
+    auto l = cast(Expression)buildAST(p.children[0]);
     assert(l !is null, "Parse Error on %s<l>".format(p.name));
-    auto r = cast(Value)buildAST(p.children[1]);
+    auto r = cast(Expression)buildAST(p.children[1]);
     assert(r !is null, "Parse Error on %s<r>".format(p.name));
     return ltExpression(l, r);
   case "PARSER.LteExpression":
-    auto l = cast(Value)buildAST(p.children[0]);
+    auto l = cast(Expression)buildAST(p.children[0]);
     assert(l !is null, "Parse Error on %s<l>".format(p.name));
-    auto r = cast(Value)buildAST(p.children[1]);
+    auto r = cast(Expression)buildAST(p.children[1]);
     assert(r !is null, "Parse Error on %s<r>".format(p.name));
     return lteExpression(l, r);
   case "PARSER.GtExpression":
-    auto l = cast(Value)buildAST(p.children[0]);
+    auto l = cast(Expression)buildAST(p.children[0]);
     assert(l !is null, "Parse Error on %s<l>".format(p.name));
-    auto r = cast(Value)buildAST(p.children[1]);
+    auto r = cast(Expression)buildAST(p.children[1]);
     assert(r !is null, "Parse Error on %s<r>".format(p.name));
     return gtExpression(l, r);
   case "PARSER.GteExpression":
-    auto l = cast(Value)buildAST(p.children[0]);
+    auto l = cast(Expression)buildAST(p.children[0]);
     assert(l !is null, "Parse Error on %s<l>".format(p.name));
-    auto r = cast(Value)buildAST(p.children[1]);
+    auto r = cast(Expression)buildAST(p.children[1]);
     assert(r !is null, "Parse Error on %s<r>".format(p.name));
     return gteExpression(l, r);
   case "PARSER.LogicExpression":
     auto e = p.children[0];
     return buildAST(e);
   case "PARSER.AndExpression":
-    auto l = cast(Value)buildAST(p.children[0]);
+    auto l = cast(Expression)buildAST(p.children[0]);
     assert(l !is null, "Parse Error on %s<l>".format(p.name));
-    auto r = cast(Value)buildAST(p.children[1]);
+    auto r = cast(Expression)buildAST(p.children[1]);
     assert(r !is null, "Parse Error on %s<r>".format(p.name));
     return andExpression(l, r);
   case "PARSER.OrExpression":
-    auto l = cast(Value)buildAST(p.children[0]);
+    auto l = cast(Expression)buildAST(p.children[0]);
     assert(l !is null, "Parse Error on %s<l>".format(p.name));
-    auto r = cast(Value)buildAST(p.children[1]);
+    auto r = cast(Expression)buildAST(p.children[1]);
     assert(r !is null, "Parse Error on %s<r>".format(p.name));
     return orExpression(l, r);
   case "PARSER.XorExpression":
-    auto l = cast(Value)buildAST(p.children[0]);
+    auto l = cast(Expression)buildAST(p.children[0]);
     assert(l !is null, "Parse Error on %s<l>".format(p.name));
-    auto r = cast(Value)buildAST(p.children[1]);
+    auto r = cast(Expression)buildAST(p.children[1]);
     assert(r !is null, "Parse Error on %s<r>".format(p.name));
     return xorExpression(l, r);
   case "PARSER.MathExpression":
     auto e = p.children[0];
     return buildAST(e);
   case "PARSER.AddExpression":
-    auto l = cast(Value)buildAST(p.children[0]);
+    auto l = cast(Expression)buildAST(p.children[0]);
     assert(l !is null, "Parse Error on %s<l>".format(p.name));
-    auto r = cast(Value)buildAST(p.children[1]);
+    auto r = cast(Expression)buildAST(p.children[1]);
     assert(r !is null, "Parse Error on %s<r>".format(p.name));
     return addExpression(l, r);
   case "PARSER.SubExpression":
-    auto l = cast(Value)buildAST(p.children[0]);
+    auto l = cast(Expression)buildAST(p.children[0]);
     assert(l !is null, "Parse Error on %s<l>".format(p.name));
-    auto r = cast(Value)buildAST(p.children[1]);
+    auto r = cast(Expression)buildAST(p.children[1]);
     assert(r !is null, "Parse Error on %s<r>".format(p.name));
     return subExpression(l, r);
   case "PARSER.MulExpression":
-    auto l = cast(Value)buildAST(p.children[0]);
+    auto l = cast(Expression)buildAST(p.children[0]);
     assert(l !is null, "Parse Error on %s<l>".format(p.name));
-    auto r = cast(Value)buildAST(p.children[1]);
+    auto r = cast(Expression)buildAST(p.children[1]);
     assert(r !is null, "Parse Error on %s<r>".format(p.name));
     return mulExpression(l, r);
   case "PARSER.DivExpression":
-    auto l = cast(Value)buildAST(p.children[0]);
+    auto l = cast(Expression)buildAST(p.children[0]);
     assert(l !is null, "Parse Error on %s<l>".format(p.name));
-    auto r = cast(Value)buildAST(p.children[1]);
+    auto r = cast(Expression)buildAST(p.children[1]);
     assert(r !is null, "Parse Error on %s<r>".format(p.name));
     return divExpression(l, r);
   case "PARSER.ModExpression":
-    auto l = cast(Value)buildAST(p.children[0]);
+    auto l = cast(Expression)buildAST(p.children[0]);
     assert(l !is null, "Parse Error on %s<l>".format(p.name));
-    auto r = cast(Value)buildAST(p.children[1]);
+    auto r = cast(Expression)buildAST(p.children[1]);
     assert(r !is null, "Parse Error on %s<r>".format(p.name));
     return modExpression(l, r);
   case "PARSER.CallExpression":
@@ -811,6 +828,10 @@ AST buildAST(ParseTree p) {
   case "PARSER.Expression":
     auto e = p.children[0];
     return buildAST(e);
+  case "PARSER.Parens":
+    auto e = cast(Expression)buildAST(p.children[0]);
+    assert(e !is null, "Parse Error on Parens");
+    return parens(e);
   case "PARSER.Identifier":
     auto e = p.matches[0];
     return ident(e);

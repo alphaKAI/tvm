@@ -35,6 +35,10 @@ void main() {
       function func() {
         return 1 || b;
       }
+    }, q{
+      (1 + 2) * (4 / 2);
+    }, q{
+      func((1 + 2) * (4 / 2));
     }
   ];
 
