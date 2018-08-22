@@ -1,5 +1,5 @@
 import std.stdio;
-import tvm.parser;
+import tvm.parser, tvm.vm;
 
 void main() {
   string[] test_cases = [
@@ -52,4 +52,9 @@ void main() {
     writeln("source: ", test_case);
     writeln(PARSER(test_case).buildAST);
   }
+
+  auto code = PARSER("2 - 4;").buildAST.compileASTtoOpcode;
+  VM vm = new VM;
+  writeln("code : ", code);
+  writeln("result : ", vm.execute(code));
 }
