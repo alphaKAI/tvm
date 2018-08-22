@@ -1,8 +1,11 @@
 module tvm.util;
 import std.array;
 
-struct Stack(T) {
+class Stack(T) {
   T[] stack;
+
+  this() {
+  }
 
   @property T pop() {
     T t = stack[$ - 1];

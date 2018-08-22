@@ -97,6 +97,9 @@ enum OpcodeType {
   tOpGetVariable,
   tOpMovR,
   tOpMovI,
+  tOpCall,
+  tOpPushR,
+  tOpPopR,
   tIValue
 }
 
@@ -147,8 +150,16 @@ class OpVariableDeclareOnlySymbol : Opcode {
   mixin(genTypeMethod!(typeof(this)));
 }
 
+Opcode opVariableDeclareOnlySymbol() {
+  return new OpVariableDeclareOnlySymbol;
+}
+
 class OpVariableDeclareWithAssign : Opcode {
   mixin(genTypeMethod!(typeof(this)));
+}
+
+Opcode opVariableDeclareWithAssign() {
+  return new OpVariableDeclareWithAssign;
 }
 
 class OpPush : Opcode {
@@ -283,6 +294,30 @@ Opcode opMovI() {
   return new OpMovI;
 }
 
+class OpCall : Opcode {
+  mixin(genTypeMethod!(typeof(this)));
+}
+
+Opcode opCall() {
+  return new OpCall;
+}
+
+class OpPushR : Opcode {
+  mixin(genTypeMethod!(typeof(this)));
+}
+
+Opcode opPushR() {
+  return new OpPushR;
+}
+
+class OpPopR : Opcode {
+  mixin(genTypeMethod!(typeof(this)));
+}
+
+Opcode opPopR() {
+  return new OpPopR;
+}
+
 Opcode[] compileASTtoOpcode(AST ast) {
   final switch (ast.type) with (ASTType) {
   case tIdentifier:
@@ -290,7 +325,9 @@ Opcode[] compileASTtoOpcode(AST ast) {
     assert(ident !is null, "Compile Error on <%s>".format(ast.type));
     return [new IValue(ident.value)];
   case tSymbol:
-    throw new Error("Not Implemented <%s>".format(ast.type));
+    auto symbol = cast(Symbol)ast;
+    assert(symbol !is null, "Compile Error on <%s>".format(ast.type));
+    return compileASTtoOpcode(symbol.ident);
   case tParens:
     auto parens = cast(Parens)ast;
     assert(parens !is null, "Compile Error on <%s>".format(ast.type));
@@ -303,13 +340,22 @@ Opcode[] compileASTtoOpcode(AST ast) {
     throw new Error("Not Implemented <%s>".format(ast.type));
   case tInteger:
     auto value = cast(Integer)ast;
-    return [opPush, new IValue(value.value)];
+    return [new IValue(value.value)];
   case tBooleanLiteral:
     throw new Error("Not Implemented <%s>".format(ast.type));
   case tParameter:
-    throw new Error("Not Implemented <%s>".format(ast.type));
+    auto param = cast(Parameter)ast;
+    assert(param !is null, "Compile Error on <%s>".format(ast.type));
+    return compileASTtoOpcode(param.expr);
   case tParameterList:
-    throw new Error("Not Implemented <%s>".format(ast.type));
+    Opcode[] ret;
+    auto params = cast(ParameterList)ast;
+    assert(params !is null, "Compile Error on <%s>".format(ast.type));
+    string[] regs = ["A", "B", "C", "D", "E", "F"];
+    foreach (i, parameter; params.parameters) {
+      ret ~= compileASTtoOpcode(parameter);
+    }
+    return ret;
   case tStatementList:
     Opcode[] ret;
     auto slist = cast(StatementList)ast;
@@ -326,33 +372,93 @@ Opcode[] compileASTtoOpcode(AST ast) {
   case tFunctionDeclare:
     throw new Error("Not Implemented <%s>".format(ast.type));
   case tVariableDeclareOnlySymbol:
-    throw new Error("Not Implemented <%s>".format(ast.type));
+    auto var = cast(VariableDeclareOnlySymbol)ast;
+    assert(var !is null, "Compile Error on <%s>".format(ast.type));
+    auto l = compileASTtoOpcode(var.lvalue);
+    if (l.length == 2 && l[0].type == OpcodeType.tOpGetVariable) {
+      l = l[1 .. $];
+    }
+    return [opVariableDeclareOnlySymbol] ~ l;
   case tVariableDeclareWithAssign:
-    throw new Error("Not Implemented <%s>".format(ast.type));
+    auto var = cast(VariableDeclareWithAssign)ast;
+    assert(var !is null, "Compile Error on <%s>".format(ast.type));
+    auto l = compileASTtoOpcode(var.lvalue);
+    if (l.length == 2 && l[0].type == OpcodeType.tOpGetVariable) {
+      l = l[1 .. $];
+    }
+    auto e = compileASTtoOpcode(var.expr);
+    if (e.length == 2 && e[0].type == OpcodeType.tOpGetVariable) {
+      e = e[1 .. $];
+    }
+    return [opVariableDeclareWithAssign] ~ l ~ e;
   case tAssignExpression:
     throw new Error("Not Implemented <%s>".format(ast.type));
   case tAddExpression:
     auto expr = cast(AddExpression)ast;
     assert(expr !is null, "Compile Error on <%s>".format(ast.type));
-    return compileASTtoOpcode(expr.rexpr) ~ compileASTtoOpcode(expr.lexpr) ~ [opAdd];
+    //return compileASTtoOpcode(expr.rexpr) ~ compileASTtoOpcode(expr.lexpr) ~ [opAdd];
+    Opcode[] r = compileASTtoOpcode(expr.rexpr), l = compileASTtoOpcode(expr.lexpr);
+    if (r.length == 1 && (cast(IValue)r[0]) !is null) {
+      r = [opPush] ~ r;
+    }
+    if (l.length == 1 && (cast(IValue)l[0]) !is null) {
+      l = [opPush] ~ l;
+    }
+    return r ~ l ~ [opAdd];
   case tSubExpression:
     auto expr = cast(SubExpression)ast;
     assert(expr !is null, "Compile Error on <%s>".format(ast.type));
-    return compileASTtoOpcode(expr.rexpr) ~ compileASTtoOpcode(expr.lexpr) ~ [opSub];
+    //return compileASTtoOpcode(expr.rexpr) ~ compileASTtoOpcode(expr.lexpr) ~ [opSub];
+    Opcode[] r = compileASTtoOpcode(expr.rexpr), l = compileASTtoOpcode(expr.lexpr);
+    if (r.length == 1 && (cast(IValue)r[0]) !is null) {
+      r = [opPush] ~ r;
+    }
+    if (l.length == 1 && (cast(IValue)l[0]) !is null) {
+      l = [opPush] ~ l;
+    }
+    return r ~ l ~ [opSub];
   case tMulExpression:
     auto expr = cast(MulExpression)ast;
     assert(expr !is null, "Compile Error on <%s>".format(ast.type));
-    return compileASTtoOpcode(expr.rexpr) ~ compileASTtoOpcode(expr.lexpr) ~ [opMul];
+    //return compileASTtoOpcode(expr.rexpr) ~ compileASTtoOpcode(expr.lexpr) ~ [opMul];
+    Opcode[] r = compileASTtoOpcode(expr.rexpr), l = compileASTtoOpcode(expr.lexpr);
+    if (r.length == 1 && (cast(IValue)r[0]) !is null) {
+      r = [opPush] ~ r;
+    }
+    if (l.length == 1 && (cast(IValue)l[0]) !is null) {
+      l = [opPush] ~ l;
+    }
+    return r ~ l ~ [opMul];
   case tDivExpression:
     auto expr = cast(DivExpression)ast;
     assert(expr !is null, "Compile Error on <%s>".format(ast.type));
-    return compileASTtoOpcode(expr.rexpr) ~ compileASTtoOpcode(expr.lexpr) ~ [opDiv];
+    //return compileASTtoOpcode(expr.rexpr) ~ compileASTtoOpcode(expr.lexpr) ~ [opDiv];
+    Opcode[] r = compileASTtoOpcode(expr.rexpr), l = compileASTtoOpcode(expr.lexpr);
+    if (r.length == 1 && (cast(IValue)r[0]) !is null) {
+      r = [opPush] ~ r;
+    }
+    if (l.length == 1 && (cast(IValue)l[0]) !is null) {
+      l = [opPush] ~ l;
+    }
+    return r ~ l ~ [opDiv];
   case tModExpression:
     auto expr = cast(ModExpression)ast;
     assert(expr !is null, "Compile Error on <%s>".format(ast.type));
-    return compileASTtoOpcode(expr.rexpr) ~ compileASTtoOpcode(expr.lexpr) ~ [opMod];
+    //return compileASTtoOpcode(expr.rexpr) ~ compileASTtoOpcode(expr.lexpr) ~ [opMod];
+    Opcode[] r = compileASTtoOpcode(expr.rexpr), l = compileASTtoOpcode(expr.lexpr);
+    if (r.length == 1 && (cast(IValue)r[0]) !is null) {
+      r = [opPush] ~ r;
+    }
+    if (l.length == 1 && (cast(IValue)l[0]) !is null) {
+      l = [opPush] ~ l;
+    }
+    return r ~ l ~ [opMod];
   case tCallExpression:
-    throw new Error("Not Implemented <%s>".format(ast.type));
+    auto call = cast(CallExpression)ast;
+    assert(call !is null, "Compile Error on <%s>".format(ast.type));
+    Symbol symbol = call.symbol;
+    ParameterList parameters = call.parameters;
+    return compileASTtoOpcode(parameters) ~ opCall ~ compileASTtoOpcode(symbol);
   case tReturnExpression:
     auto ret = cast(ReturnExpression)ast;
     assert(ret !is null, "Compile Error on <%s>".format(ast.type));
@@ -379,26 +485,33 @@ Opcode[] compileASTtoOpcode(AST ast) {
 class VM {
   Env env;
   Registers registers;
+  Stack!IValue stack = new Stack!IValue;
 
   this() {
     this.env = new Env;
     this.registers = new Registers;
 
     this.env.variables["a"] = new IValue(100);
-    /*this.env.funcs["sq"] = [opMovI, new Value("RET"), opPush, new Value(4),
-      opPush, new Value(4), opMul];*/
+    this.env.funcs["f"] = new FuncScope("f", [opMovI, new IValue("RET"),
+        new IValue("100")], env.dup);
+    this.env.funcs["sq"] = new FuncScope("sq", [opPopR, new IValue("A"), opPushR,
+        new IValue("A"), opPushR, new IValue("A"), opMul], env.dup);
   }
 
   IValue execute(Opcode[] code) {
-    Stack!IValue stack;
 
     for (size_t pc; pc < code.length; pc++) {
       Opcode op = code[pc];
       final switch (op.type) with (OpcodeType) {
       case tOpVariableDeclareOnlySymbol:
-        throw new Error("Not Implemented <%s>".format(op.type));
+        auto symbol = cast(IValue)code[pc++ + 1];
+        this.env.variables[symbol.getString] = new IValue;
+        break;
       case tOpVariableDeclareWithAssign:
-        throw new Error("Not Implemented <%s>".format(op.type));
+        auto symbol = cast(IValue)code[pc++ + 1];
+        auto v = cast(IValue)code[pc++ + 1];
+        this.env.variables[symbol.getString] = v;
+        break;
       case tOpPush:
         auto v = cast(IValue)code[pc++ + 1];
         assert(v !is null, "Execute Error on tOpPush");
@@ -460,8 +573,25 @@ class VM {
         auto v = cast(IValue)code[pc++ + 1];
         registers.setRegister(Registers.getRegisterID(dst.getString), v);
         break;
+      case tOpCall:
+        auto func = cast(IValue)code[pc++ + 1];
+        string fname = func.getString;
+        Env cpyEnv = this.env;
+        this.env = this.env.funcs[fname].func_env;
+        this.execute(cpyEnv.funcs[fname].func_body);
+        this.env = cpyEnv;
+        break;
+      case tOpPushR:
+        auto dst = cast(IValue)code[pc++ + 1];
+        stack.push(registers.getRegister(Registers.getRegisterID(dst.getString)));
+        break;
+      case tOpPopR:
+        auto dst = cast(IValue)code[pc++ + 1];
+        registers.setRegister(Registers.getRegisterID(dst.getString), stack.pop());
+        break;
       case tIValue:
-        throw new Error("Not Implemented <%s>".format(op.type));
+        stack.push(cast(IValue)op);
+        break;
       }
     }
 

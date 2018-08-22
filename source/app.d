@@ -53,7 +53,7 @@ void main() {
     writeln(PARSER(test_case).buildAST);
   }
 
-  auto code = PARSER("a + 1;").buildAST.compileASTtoOpcode;
+  auto code = PARSER("var b = 1; b + 1;").buildAST.compileASTtoOpcode;
   VM vm = new VM;
   writeln("code : ", code);
   writeln("result : ", vm.execute(code));
