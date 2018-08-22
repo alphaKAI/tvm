@@ -60,6 +60,27 @@ class Registers {
       return this.RET;
     }
   }
+
+  static RegisterID getRegisterID(string reg) {
+    switch (reg) with (RegisterID) {
+    case "A":
+      return RegisterID.A;
+    case "B":
+      return RegisterID.B;
+    case "C":
+      return RegisterID.C;
+    case "D":
+      return RegisterID.D;
+    case "E":
+      return RegisterID.E;
+    case "F":
+      return RegisterID.F;
+    case "RET":
+      return RegisterID.RET;
+    default:
+      throw new Error("<Register Access Error>No such a register - %s".format(reg));
+    }
+  }
 }
 
 enum OpcodeType {
@@ -72,6 +93,10 @@ enum OpcodeType {
   tOpMul,
   tOpDiv,
   tOpMod,
+  tOpReturn,
+  tOpGetVariable,
+  tOpMovR,
+  tOpMovI,
   tIValue
 }
 
@@ -226,10 +251,44 @@ Opcode opMod() {
   return new OpMod();
 }
 
+class OpReturn : Opcode {
+  mixin(genTypeMethod!(typeof(this)));
+}
+
+Opcode opReturn() {
+  return new OpReturn;
+}
+
+class OpGetVariable : Opcode {
+  mixin(genTypeMethod!(typeof(this)));
+}
+
+Opcode opGetVariable() {
+  return new OpGetVariable;
+}
+
+class OpMovR : Opcode {
+  mixin(genTypeMethod!(typeof(this)));
+}
+
+Opcode opMovR() {
+  return new OpMovR;
+}
+
+class OpMovI : Opcode {
+  mixin(genTypeMethod!(typeof(this)));
+}
+
+Opcode opMovI() {
+  return new OpMovI;
+}
+
 Opcode[] compileASTtoOpcode(AST ast) {
   final switch (ast.type) with (ASTType) {
   case tIdentifier:
-    throw new Error("Not Implemented <%s>".format(ast.type));
+    auto ident = cast(Identifier)ast;
+    assert(ident !is null, "Compile Error on <%s>".format(ast.type));
+    return [new IValue(ident.value)];
   case tSymbol:
     throw new Error("Not Implemented <%s>".format(ast.type));
   case tParens:
@@ -237,7 +296,9 @@ Opcode[] compileASTtoOpcode(AST ast) {
     assert(parens !is null, "Compile Error on <%s>".format(ast.type));
     return compileASTtoOpcode(parens.expression);
   case tVariable:
-    throw new Error("Not Implemented <%s>".format(ast.type));
+    auto var = cast(Variable)ast;
+    assert(var !is null, "Compile Error on <%s>".format(ast.type));
+    return [opGetVariable] ~ compileASTtoOpcode(var.ident);
   case tStringLiteral:
     throw new Error("Not Implemented <%s>".format(ast.type));
   case tInteger:
@@ -293,7 +354,9 @@ Opcode[] compileASTtoOpcode(AST ast) {
   case tCallExpression:
     throw new Error("Not Implemented <%s>".format(ast.type));
   case tReturnExpression:
-    throw new Error("Not Implemented <%s>".format(ast.type));
+    auto ret = cast(ReturnExpression)ast;
+    assert(ret !is null, "Compile Error on <%s>".format(ast.type));
+    return compileASTtoOpcode(ret.expression) ~ [opReturn];
   case tEqualExpression:
     throw new Error("Not Implemented <%s>".format(ast.type));
   case tLtExpression:
@@ -320,6 +383,10 @@ class VM {
   this() {
     this.env = new Env;
     this.registers = new Registers;
+
+    this.env.variables["a"] = new IValue(100);
+    /*this.env.funcs["sq"] = [opMovI, new Value("RET"), opPush, new Value(4),
+      opPush, new Value(4), opMul];*/
   }
 
   IValue execute(Opcode[] code) {
@@ -375,6 +442,24 @@ class VM {
         mod.perform(registers);
         stack.push(registers.RET);
         break;
+      case tOpReturn:
+        return registers.RET;
+      case tOpGetVariable:
+        auto v = cast(IValue)code[pc++ + 1];
+        assert(v !is null, "Execute Error on tOpGetVariable");
+        stack.push(env.variables[v.getString]);
+        break;
+      case tOpMovR:
+        auto dst = cast(IValue)code[pc++ + 1];
+        auto src = cast(IValue)code[pc++ + 1];
+        registers.setRegister(Registers.getRegisterID(dst.getString),
+            registers.getRegister(Registers.getRegisterID(src.getString)));
+        break;
+      case tOpMovI:
+        auto dst = cast(IValue)code[pc++ + 1];
+        auto v = cast(IValue)code[pc++ + 1];
+        registers.setRegister(Registers.getRegisterID(dst.getString), v);
+        break;
       case tIValue:
         throw new Error("Not Implemented <%s>".format(op.type));
       }
@@ -398,12 +483,6 @@ class VM {
   RightValue < Integer / StringLiteral / BooleanLiteral
   AssignExpression < LeftValue "=" Expression
   ReturnExpression < "return" Expression
-  MathExpression < AddExpression / SubExpression / MulExpression / DivExpression / ModExpression
-  AddExpression < Expression "+" Expression
-  SubExpression < Expression "-" Expression
-  MulExpression < Expression "*" Expression
-  DivExpression < Expression "/" Expression
-  ModExpression < Expression "%" Expression
   CallExpression < Symbol ParameterList
   
   CompareExpression < EqualExpression / LtExpression / LteExpression / GtExpression / GteExpression
