@@ -396,7 +396,6 @@ Opcode[] compileASTtoOpcode(AST ast) {
   case tAddExpression:
     auto expr = cast(AddExpression)ast;
     assert(expr !is null, "Compile Error on <%s>".format(ast.type));
-    //return compileASTtoOpcode(expr.rexpr) ~ compileASTtoOpcode(expr.lexpr) ~ [opAdd];
     Opcode[] r = compileASTtoOpcode(expr.rexpr), l = compileASTtoOpcode(expr.lexpr);
     if (r.length == 1 && (cast(IValue)r[0]) !is null) {
       r = [opPush] ~ r;
@@ -408,7 +407,6 @@ Opcode[] compileASTtoOpcode(AST ast) {
   case tSubExpression:
     auto expr = cast(SubExpression)ast;
     assert(expr !is null, "Compile Error on <%s>".format(ast.type));
-    //return compileASTtoOpcode(expr.rexpr) ~ compileASTtoOpcode(expr.lexpr) ~ [opSub];
     Opcode[] r = compileASTtoOpcode(expr.rexpr), l = compileASTtoOpcode(expr.lexpr);
     if (r.length == 1 && (cast(IValue)r[0]) !is null) {
       r = [opPush] ~ r;
@@ -420,7 +418,6 @@ Opcode[] compileASTtoOpcode(AST ast) {
   case tMulExpression:
     auto expr = cast(MulExpression)ast;
     assert(expr !is null, "Compile Error on <%s>".format(ast.type));
-    //return compileASTtoOpcode(expr.rexpr) ~ compileASTtoOpcode(expr.lexpr) ~ [opMul];
     Opcode[] r = compileASTtoOpcode(expr.rexpr), l = compileASTtoOpcode(expr.lexpr);
     if (r.length == 1 && (cast(IValue)r[0]) !is null) {
       r = [opPush] ~ r;
@@ -432,7 +429,6 @@ Opcode[] compileASTtoOpcode(AST ast) {
   case tDivExpression:
     auto expr = cast(DivExpression)ast;
     assert(expr !is null, "Compile Error on <%s>".format(ast.type));
-    //return compileASTtoOpcode(expr.rexpr) ~ compileASTtoOpcode(expr.lexpr) ~ [opDiv];
     Opcode[] r = compileASTtoOpcode(expr.rexpr), l = compileASTtoOpcode(expr.lexpr);
     if (r.length == 1 && (cast(IValue)r[0]) !is null) {
       r = [opPush] ~ r;
@@ -444,7 +440,6 @@ Opcode[] compileASTtoOpcode(AST ast) {
   case tModExpression:
     auto expr = cast(ModExpression)ast;
     assert(expr !is null, "Compile Error on <%s>".format(ast.type));
-    //return compileASTtoOpcode(expr.rexpr) ~ compileASTtoOpcode(expr.lexpr) ~ [opMod];
     Opcode[] r = compileASTtoOpcode(expr.rexpr), l = compileASTtoOpcode(expr.lexpr);
     if (r.length == 1 && (cast(IValue)r[0]) !is null) {
       r = [opPush] ~ r;
