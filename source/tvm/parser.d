@@ -32,8 +32,9 @@ PARSER:
   ModExpression < Expression "%" Expression
   CallExpression < Symbol ParameterList
   
-  CompareExpression < EqualExpression / LtExpression / LteExpression / GtExpression / GteExpression
+  CompareExpression < EqualExpression / NotEqualExpression / LtExpression / LteExpression / GtExpression / GteExpression
   EqualExpression < Expression "==" Expression
+  NotEqualExpression < Expression "!=" Expression
   LtExpression < Expression "<" Expression
   LteExpression < Expression "<=" Expression
   GtExpression < Expression ">" Expression
@@ -48,8 +49,9 @@ PARSER:
   Parens < :"(" Expression :")"
 
   IFStatement < "if" :"(" Expression :")" Block ("else" Block)?
+  ForStatement < "for" :"(" VariableDeclare ";" Expression ";" Expression :")" Block
 
-  Statement < FunctionDeclare / IFStatement / ((VariableDeclare / Expression) ";")
+  Statement < FunctionDeclare / IFStatement / ForStatement / ((VariableDeclare / Expression) ";")
   StatementList < Statement+
 
   Block < "{" StatementList? "}"
@@ -58,7 +60,7 @@ PARSER:
 
   Integer <~ digit+
   Identifier <~ !Keyword [a-zA-Z_] [a-zA-Z0-9_]*
-  Keyword <- "function" / "var" / "if" / "else" / "true" / "false"
+  Keyword <- "function" / "var" / "if" / "for" / "else" / "true" / "false"
   StringLiteral <~ doublequote (DQChar)* doublequote
   DQChar <- EscapeSequence / !doublequote .
   EscapeSequence <~ backslash ( quote
@@ -81,6 +83,7 @@ enum ASTType {
   tStatementList,
   tBlock,
   tIFStatement,
+  tForStatement,
   tFunctionDeclare,
   tVariableDeclareOnlySymbol,
   tVariableDeclareWithAssign,
@@ -93,6 +96,7 @@ enum ASTType {
   tCallExpression,
   tReturnExpression,
   tEqualExpression,
+  tNotEqualExpression,
   tLtExpression,
   tLteExpression,
   tGtExpression,
@@ -205,6 +209,9 @@ interface RightValue : Value {
 class StringLiteral : RightValue {
   string value;
   this(string value) {
+    if (value[0] == '"' && value[$ - 1] == '"') {
+      value = value[1 .. $ - 1];
+    }
     this.value = value;
   }
 
@@ -362,6 +369,35 @@ class IFStatement : Statement {
 
 AST ifStatement(Expression cond, Block trueBlock, Block falseBlock = null) {
   return new IFStatement(cond, trueBlock, falseBlock);
+}
+
+class ForStatement : Statement {
+  VariableDeclare vassign;
+  Expression cond, update;
+  Block block;
+  this(VariableDeclare vassign, Expression cond, Expression update, Block block) {
+    this.vassign = vassign;
+    this.cond = cond;
+    this.update = update;
+    this.block = block;
+  }
+
+  override string toString() {
+    //dfmt off
+    return "ForStatement <vassign: %s; cond: %s; update: %s> <Block: %s>".format(
+      vassign is null ? "" : vassign.toString,
+      cond    is null ? "" : cond.toString,
+      update  is null ? "" : update.toString,
+      block.toString
+    );
+    //dfmt on
+  }
+
+  mixin(genTypeMethod!(typeof(this)));
+}
+
+AST forStatement(VariableDeclare vassign, Expression cond, Expression update, Block block) {
+  return new ForStatement(vassign, cond, update, block);
 }
 
 interface Declare : Statement {
@@ -583,6 +619,24 @@ class EqualExpression : CompareExpression {
 
 AST equalExpression(Expression lexpr, Expression rexpr) {
   return new EqualExpression(lexpr, rexpr);
+}
+
+class NotEqualExpression : CompareExpression {
+  Expression lexpr, rexpr;
+  this(Expression lexpr, Expression rexpr) {
+    this.lexpr = lexpr;
+    this.rexpr = rexpr;
+  }
+
+  override string toString() {
+    return "CompareExpression <%s, %s>".format(lexpr.toString, rexpr.toString);
+  }
+
+  mixin(genTypeMethod!(typeof(this)));
+}
+
+AST notEqualExpression(Expression lexpr, Expression rexpr) {
+  return new NotEqualExpression(lexpr, rexpr);
 }
 
 class LtExpression : CompareExpression {
@@ -826,6 +880,16 @@ AST buildAST(ParseTree p) {
       assert(falseBlock !is null, "Parse Error on IFStatement <falseBlock>");
     }
     return ifStatement(cond, trueBlock, falseBlock);
+  case "PARSER.ForStatement":
+    auto vassign = cast(VariableDeclare)buildAST(p.children[0]);
+    assert(vassign !is null, "Parse Error on %s<vassign>".format(p.name));
+    auto cond = cast(Expression)buildAST(p.children[1]);
+    assert(cond !is null, "Parse Error on %s<cond>".format(p.name));
+    auto update = cast(Expression)buildAST(p.children[2]);
+    assert(update !is null, "Parse Error on %s<update>".format(p.name));
+    auto block = cast(Block)buildAST(p.children[3]);
+    assert(block !is null, "Parse Error on %s<block>".format(p.name));
+    return forStatement(vassign, cond, update, block);
   case "PARSER.AssignExpression":
     LeftValue l = cast(LeftValue)buildAST(p.children[0]);
     assert(l !is null, "Parse Error on AssignExpression<l>");
@@ -841,6 +905,12 @@ AST buildAST(ParseTree p) {
     auto r = cast(Expression)buildAST(p.children[1]);
     assert(r !is null, "Parse Error on %s<r>".format(p.name));
     return equalExpression(l, r);
+  case "PARSER.NotEqualExpression":
+    auto l = cast(Expression)buildAST(p.children[0]);
+    assert(l !is null, "Parse Error on %s<l>".format(p.name));
+    auto r = cast(Expression)buildAST(p.children[1]);
+    assert(r !is null, "Parse Error on %s<r>".format(p.name));
+    return notEqualExpression(l, r);
   case "PARSER.LtExpression":
     auto l = cast(Expression)buildAST(p.children[0]);
     assert(l !is null, "Parse Error on %s<l>".format(p.name));

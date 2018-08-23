@@ -83,7 +83,7 @@ class IValue : Opcode {
     case Long:
       return this.long_value.to!string;
     case String:
-      return this.string_value;
+      return "\"%s\"".format(this.string_value);
     case Bool:
       return this.bool_value.to!string;
     case Null:

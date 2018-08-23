@@ -2,6 +2,7 @@ import std.stdio;
 import tvm.parser, tvm.vm;
 
 void main() {
+  /*
   string[] test_cases = [
     "var foo;", `var foo = "value";`, "var foo = variable;", `function funcName(a, b) {
       a = b;
@@ -52,9 +53,38 @@ void main() {
     writeln("source: ", test_case);
     writeln(PARSER(test_case).buildAST);
   }
+*/
+  /*
+function fact(n, acc) {
+      if (n <= 1) {
+        return acc;
+      } else {
+        return fact(n - 1, acc * n);
+      }
+    }
+    println(fact(4, 1));
+*/
 
-  auto code = PARSER("var b = 1; b + 1;").buildAST.compileASTtoOpcode;
+  auto code = PARSER(q{
+    function fib(n, a, b) {
+      if (n < 0) {
+        if (n % 2 == 0) {
+          return (0-1) * fib(n * (0-1));
+        } else {
+          return (0-1) * fib(n * (0-1));
+        }
+      }
+      if (n < 1) {
+        return a;
+      }
+      if (n < 2) {
+        return b;
+      }
+      return fib(n - 1, b, a + b);
+    }
+    println(fib(35, 0, 1));
+  }).buildAST.compileASTtoOpcode;
   VM vm = new VM;
-  writeln("code : ", code);
+  //writeln("code : ", code);
   writeln("result : ", vm.execute(code));
 }

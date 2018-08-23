@@ -1,6 +1,6 @@
 module tvm.vm;
 import tvm.parser, tvm.value, tvm.util;
-import std.algorithm, std.format;
+import std.algorithm, std.format, std.conv;
 import std.stdio;
 
 enum RegisterID {
@@ -95,11 +95,30 @@ enum OpcodeType {
   tOpMod,
   tOpReturn,
   tOpGetVariable,
+  tOpSetVariableR,
+  tOpSetVariableI,
+  tOpSetVariablePop,
   tOpMovR,
   tOpMovI,
   tOpCall,
   tOpPushR,
   tOpPopR,
+  tOpNop,
+  tOpFunctionDeclare,
+  tOpEqualExpression,
+  tOpNotEqualExpression,
+  tOpLtExpression,
+  tOpLteExpression,
+  tOpGtExpression,
+  tOpGteExpression,
+  tOpAndExpression,
+  tOpOrExpression,
+  tOpXorExpression,
+  tOpJumpRel,
+  tOpJumpAbs,
+  tOpPrint,
+  tOpPrintln,
+  tOpIFStatement,
   tIValue
 }
 
@@ -130,9 +149,10 @@ class Env {
   Env dup() {
     Env newEnv = new Env;
     newEnv.funcs = this.funcs;
+    /*
     foreach (name, value; this.variables) {
       newEnv.variables[name] = value.dup;
-    }
+    }*/
 
     return newEnv;
   }
@@ -146,176 +166,27 @@ string genTypeMethod(T)() {
   }.format(T.stringof);
 }
 
-class OpVariableDeclareOnlySymbol : Opcode {
-  mixin(genTypeMethod!(typeof(this)));
-}
-
-Opcode opVariableDeclareOnlySymbol() {
-  return new OpVariableDeclareOnlySymbol;
-}
-
-class OpVariableDeclareWithAssign : Opcode {
-  mixin(genTypeMethod!(typeof(this)));
-}
-
-Opcode opVariableDeclareWithAssign() {
-  return new OpVariableDeclareWithAssign;
-}
-
-class OpPush : Opcode {
-  mixin(genTypeMethod!(typeof(this)));
-}
-
-Opcode opPush() {
-  return new OpPush;
-}
-
-class OpPop : Opcode {
-  mixin(genTypeMethod!(typeof(this)));
-}
-
-Opcode opPop() {
-  return new OpPop();
-}
-
-interface Function : Opcode {
-  void perform(Registers registers);
-}
-
-class OpAdd : Function {
-  mixin(genTypeMethod!(typeof(this)));
-
-  void perform(Registers registers) {
-    IValue l = cast(IValue)registers.A;
-    assert(l !is null, "Execute Error on OpAdd#perform<l>");
-    IValue r = cast(IValue)registers.B;
-    assert(r !is null, "Execute Error on OpAdd#perform<r>");
-    registers.setRegister(RegisterID.RET, l + r);
+string genOpCodeClassAndHelper(string t)() {
+  string base = t[1 .. $];
+  if (base == "IValue") {
+    return "";
   }
-}
 
-Opcode opAdd() {
-  return new OpAdd();
-}
+  string helper = "o" ~ base[1 .. $];
 
-class OpSub : Function {
-  mixin(genTypeMethod!(typeof(this)));
-
-  void perform(Registers registers) {
-    IValue l = cast(IValue)registers.A;
-    assert(l !is null, "Execute Error on OpSub#perform<l>");
-    IValue r = cast(IValue)registers.B;
-    assert(r !is null, "Execute Error on OpSub#perform<r>");
-    registers.setRegister(RegisterID.RET, l - r);
-  }
-}
-
-Opcode opSub() {
-  return new OpSub();
-}
-
-class OpMul : Function {
-  mixin(genTypeMethod!(typeof(this)));
-
-  void perform(Registers registers) {
-    IValue l = cast(IValue)registers.A;
-    assert(l !is null, "Execute Error on OpMul#perform<l>");
-    IValue r = cast(IValue)registers.B;
-    assert(r !is null, "Execute Error on OpMul#perform<r>");
-    registers.setRegister(RegisterID.RET, l * r);
-  }
-}
-
-Opcode opMul() {
-  return new OpMul();
-}
-
-class OpDiv : Function {
-  mixin(genTypeMethod!(typeof(this)));
-
-  void perform(Registers registers) {
-    IValue l = cast(IValue)registers.A;
-    assert(l !is null, "Execute Error on OpDiv#perform<l>");
-    IValue r = cast(IValue)registers.B;
-    assert(r !is null, "Execute Error on OpDiv#perform<r>");
-    registers.setRegister(RegisterID.RET, l / r);
-  }
-}
-
-Opcode opDiv() {
-  return new OpDiv();
-}
-
-class OpMod : Function {
-  mixin(genTypeMethod!(typeof(this)));
-
-  void perform(Registers registers) {
-    IValue l = cast(IValue)registers.A;
-    assert(l !is null, "Execute Error on OpMod#perform<l>");
-    IValue r = cast(IValue)registers.B;
-    assert(r !is null, "Execute Error on OpMod#perform<r>");
-    registers.setRegister(RegisterID.RET, l % r);
-  }
-}
-
-Opcode opMod() {
-  return new OpMod();
-}
-
-class OpReturn : Opcode {
+  return q{
+class %s : Opcode {
   mixin(genTypeMethod!(typeof(this)));
 }
 
-Opcode opReturn() {
-  return new OpReturn;
+Opcode %s() {
+  return new %s;
+}
+}.format(base, helper, base);
 }
 
-class OpGetVariable : Opcode {
-  mixin(genTypeMethod!(typeof(this)));
-}
-
-Opcode opGetVariable() {
-  return new OpGetVariable;
-}
-
-class OpMovR : Opcode {
-  mixin(genTypeMethod!(typeof(this)));
-}
-
-Opcode opMovR() {
-  return new OpMovR;
-}
-
-class OpMovI : Opcode {
-  mixin(genTypeMethod!(typeof(this)));
-}
-
-Opcode opMovI() {
-  return new OpMovI;
-}
-
-class OpCall : Opcode {
-  mixin(genTypeMethod!(typeof(this)));
-}
-
-Opcode opCall() {
-  return new OpCall;
-}
-
-class OpPushR : Opcode {
-  mixin(genTypeMethod!(typeof(this)));
-}
-
-Opcode opPushR() {
-  return new OpPushR;
-}
-
-class OpPopR : Opcode {
-  mixin(genTypeMethod!(typeof(this)));
-}
-
-Opcode opPopR() {
-  return new OpPopR;
+static foreach (elem; __traits(allMembers, OpcodeType)) {
+  mixin(genOpCodeClassAndHelper!(elem));
 }
 
 Opcode[] compileASTtoOpcode(AST ast) {
@@ -337,12 +208,14 @@ Opcode[] compileASTtoOpcode(AST ast) {
     assert(var !is null, "Compile Error on <%s>".format(ast.type));
     return [opGetVariable] ~ compileASTtoOpcode(var.ident);
   case tStringLiteral:
-    throw new Error("Not Implemented <%s>".format(ast.type));
+    auto value = cast(StringLiteral)ast;
+    return [new IValue(value.value)];
   case tInteger:
     auto value = cast(Integer)ast;
     return [new IValue(value.value)];
   case tBooleanLiteral:
-    throw new Error("Not Implemented <%s>".format(ast.type));
+    auto value = cast(BooleanLiteral)ast;
+    return [new IValue(value.value)];
   case tParameter:
     auto param = cast(Parameter)ast;
     assert(param !is null, "Compile Error on <%s>".format(ast.type));
@@ -351,8 +224,7 @@ Opcode[] compileASTtoOpcode(AST ast) {
     Opcode[] ret;
     auto params = cast(ParameterList)ast;
     assert(params !is null, "Compile Error on <%s>".format(ast.type));
-    string[] regs = ["A", "B", "C", "D", "E", "F"];
-    foreach (i, parameter; params.parameters) {
+    foreach (parameter; params.parameters) {
       ret ~= compileASTtoOpcode(parameter);
     }
     return ret;
@@ -366,11 +238,68 @@ Opcode[] compileASTtoOpcode(AST ast) {
 
     return ret;
   case tBlock:
-    throw new Error("Not Implemented <%s>".format(ast.type));
+    auto block = cast(Block)ast;
+    assert(block !is null, "Compile Error on <%s>".format(ast.type));
+    auto statements = block.statements;
+    if (statements is null) {
+      return [opNop];
+    } else {
+      return compileASTtoOpcode(block.statements);
+    }
   case tIFStatement:
+    auto ifStmt = cast(IFStatement)ast;
+    Expression cond = ifStmt.cond;
+    Block trueBlock = ifStmt.trueBlock, falseBlock = ifStmt.falseBlock;
+    Opcode[] op_trueBlock = compileASTtoOpcode(trueBlock), op_falseBlock;
+    if (falseBlock !is null) {
+      op_falseBlock = compileASTtoOpcode(falseBlock);
+      long falseBlockLength = op_falseBlock.length.to!long;
+      op_trueBlock ~= [opJumpRel, new IValue(falseBlockLength)];
+    }
+    long trueBlockLength = op_trueBlock.length.to!long;
+
+    return compileASTtoOpcode(cond) ~ [opIFStatement] ~ cast(
+        Opcode[])[new IValue(trueBlockLength)] ~ op_trueBlock ~ op_falseBlock;
+  case tForStatement:
+    /*
+    auto forStmt = casT(ForStatement) ast;
+    assert(forStmt !is null, "Compile Error on <%s>".format(ast.type));
+    VariableDeclare vassign = forStmt.vassign;
+    Expression cond = forStmt.cond, update = forStmt.update;
+    Block block = forStmt.block;
+    */
     throw new Error("Not Implemented <%s>".format(ast.type));
   case tFunctionDeclare:
-    throw new Error("Not Implemented <%s>".format(ast.type));
+    auto func = cast(FunctionDeclare)ast;
+    assert(func !is null, "Compile Error on <%s>".format(ast.type));
+    Symbol symbol = func.symbol;
+    ParameterList parameters = func.parameters;
+    Block block = func.block;
+
+    Opcode[] op_params;
+    foreach (elem; compileASTtoOpcode(parameters)) {
+      if (elem.type != OpcodeType.tOpGetVariable) {
+        op_params ~= elem;
+      }
+    }
+    long op_params_count = op_params.length.to!long;
+
+    Opcode[] op_blocks = compileASTtoOpcode(block);
+    Opcode[] prepends;
+    foreach_reverse (op_param; op_params) {
+      auto param = cast(IValue)op_param;
+      assert(param !is null, "Compile Error on <%s> [param]".format(ast.type));
+      prepends ~= [opSetVariablePop, param];
+    }
+
+    op_blocks = prepends ~ op_blocks;
+
+    long op_blocks_count = op_blocks.length.to!long;
+
+    auto ret = [opFunctionDeclare] ~ compileASTtoOpcode(symbol) ~ cast(
+        Opcode[])[new IValue(op_params_count)] ~ op_params ~ cast(
+        Opcode[])[new IValue(op_blocks_count)] ~ op_blocks;
+    return ret;
   case tVariableDeclareOnlySymbol:
     auto var = cast(VariableDeclareOnlySymbol)ast;
     assert(var !is null, "Compile Error on <%s>".format(ast.type));
@@ -390,7 +319,7 @@ Opcode[] compileASTtoOpcode(AST ast) {
     if (e.length == 2 && e[0].type == OpcodeType.tOpGetVariable) {
       e = e[1 .. $];
     }
-    return [opVariableDeclareWithAssign] ~ l ~ e;
+    return e ~ [opVariableDeclareWithAssign] ~ l;
   case tAssignExpression:
     throw new Error("Not Implemented <%s>".format(ast.type));
   case tAddExpression:
@@ -459,21 +388,104 @@ Opcode[] compileASTtoOpcode(AST ast) {
     assert(ret !is null, "Compile Error on <%s>".format(ast.type));
     return compileASTtoOpcode(ret.expression) ~ [opReturn];
   case tEqualExpression:
-    throw new Error("Not Implemented <%s>".format(ast.type));
+    auto expr = cast(EqualExpression)ast;
+    assert(expr !is null, "Compile Error on <%s>".format(ast.type));
+    Opcode[] r = compileASTtoOpcode(expr.rexpr), l = compileASTtoOpcode(expr.lexpr);
+    if (r.length == 1 && (cast(IValue)r[0]) !is null) {
+      r = [opPush] ~ r;
+    }
+    if (l.length == 1 && (cast(IValue)l[0]) !is null) {
+      l = [opPush] ~ l;
+    }
+    return r ~ l ~ [opEqualExpression];
+  case tNotEqualExpression:
+    auto expr = cast(NotEqualExpression)ast;
+    assert(expr !is null, "Compile Error on <%s>".format(ast.type));
+    Opcode[] r = compileASTtoOpcode(expr.rexpr), l = compileASTtoOpcode(expr.lexpr);
+    if (r.length == 1 && (cast(IValue)r[0]) !is null) {
+      r = [opPush] ~ r;
+    }
+    if (l.length == 1 && (cast(IValue)l[0]) !is null) {
+      l = [opPush] ~ l;
+    }
+    return r ~ l ~ [opNotEqualExpression];
   case tLtExpression:
-    throw new Error("Not Implemented <%s>".format(ast.type));
+    auto expr = cast(LtExpression)ast;
+    assert(expr !is null, "Compile Error on <%s>".format(ast.type));
+    Opcode[] r = compileASTtoOpcode(expr.rexpr), l = compileASTtoOpcode(expr.lexpr);
+    if (r.length == 1 && (cast(IValue)r[0]) !is null) {
+      r = [opPush] ~ r;
+    }
+    if (l.length == 1 && (cast(IValue)l[0]) !is null) {
+      l = [opPush] ~ l;
+    }
+    return r ~ l ~ [opLtExpression];
   case tLteExpression:
-    throw new Error("Not Implemented <%s>".format(ast.type));
+    auto expr = cast(LteExpression)ast;
+    assert(expr !is null, "Compile Error on <%s>".format(ast.type));
+    Opcode[] r = compileASTtoOpcode(expr.rexpr), l = compileASTtoOpcode(expr.lexpr);
+    if (r.length == 1 && (cast(IValue)r[0]) !is null) {
+      r = [opPush] ~ r;
+    }
+    if (l.length == 1 && (cast(IValue)l[0]) !is null) {
+      l = [opPush] ~ l;
+    }
+    return r ~ l ~ [opLteExpression];
   case tGtExpression:
-    throw new Error("Not Implemented <%s>".format(ast.type));
+    auto expr = cast(GtExpression)ast;
+    assert(expr !is null, "Compile Error on <%s>".format(ast.type));
+    Opcode[] r = compileASTtoOpcode(expr.rexpr), l = compileASTtoOpcode(expr.lexpr);
+    if (r.length == 1 && (cast(IValue)r[0]) !is null) {
+      r = [opPush] ~ r;
+    }
+    if (l.length == 1 && (cast(IValue)l[0]) !is null) {
+      l = [opPush] ~ l;
+    }
+    return r ~ l ~ [opGtExpression];
   case tGteExpression:
-    throw new Error("Not Implemented <%s>".format(ast.type));
+    auto expr = cast(GteExpression)ast;
+    assert(expr !is null, "Compile Error on <%s>".format(ast.type));
+    Opcode[] r = compileASTtoOpcode(expr.rexpr), l = compileASTtoOpcode(expr.lexpr);
+    if (r.length == 1 && (cast(IValue)r[0]) !is null) {
+      r = [opPush] ~ r;
+    }
+    if (l.length == 1 && (cast(IValue)l[0]) !is null) {
+      l = [opPush] ~ l;
+    }
+    return r ~ l ~ [opGteExpression];
   case tAndExpression:
-    throw new Error("Not Implemented <%s>".format(ast.type));
+    auto expr = cast(AndExpression)ast;
+    assert(expr !is null, "Compile Error on <%s>".format(ast.type));
+    Opcode[] r = compileASTtoOpcode(expr.rexpr), l = compileASTtoOpcode(expr.lexpr);
+    if (r.length == 1 && (cast(IValue)r[0]) !is null) {
+      r = [opPush] ~ r;
+    }
+    if (l.length == 1 && (cast(IValue)l[0]) !is null) {
+      l = [opPush] ~ l;
+    }
+    return r ~ l ~ [opAndExpression];
   case tOrExpression:
-    throw new Error("Not Implemented <%s>".format(ast.type));
+    auto expr = cast(OrExpression)ast;
+    assert(expr !is null, "Compile Error on <%s>".format(ast.type));
+    Opcode[] r = compileASTtoOpcode(expr.rexpr), l = compileASTtoOpcode(expr.lexpr);
+    if (r.length == 1 && (cast(IValue)r[0]) !is null) {
+      r = [opPush] ~ r;
+    }
+    if (l.length == 1 && (cast(IValue)l[0]) !is null) {
+      l = [opPush] ~ l;
+    }
+    return r ~ l ~ [opOrExpression];
   case tXorExpression:
-    throw new Error("Not Implemented <%s>".format(ast.type));
+    auto expr = cast(XorExpression)ast;
+    assert(expr !is null, "Compile Error on <%s>".format(ast.type));
+    Opcode[] r = compileASTtoOpcode(expr.rexpr), l = compileASTtoOpcode(expr.lexpr);
+    if (r.length == 1 && (cast(IValue)r[0]) !is null) {
+      r = [opPush] ~ r;
+    }
+    if (l.length == 1 && (cast(IValue)l[0]) !is null) {
+      l = [opPush] ~ l;
+    }
+    return r ~ l ~ [opXorExpression];
   }
 }
 
@@ -491,10 +503,11 @@ class VM {
         new IValue("100")], env.dup);
     this.env.funcs["sq"] = new FuncScope("sq", [opPopR, new IValue("A"), opPushR,
         new IValue("A"), opPushR, new IValue("A"), opMul], env.dup);
+    this.env.funcs["print"] = new FuncScope("print", [opPrint], env);
+    this.env.funcs["println"] = new FuncScope("println", [opPrintln], env);
   }
 
   IValue execute(Opcode[] code) {
-
     for (size_t pc; pc < code.length; pc++) {
       Opcode op = code[pc];
       final switch (op.type) with (OpcodeType) {
@@ -504,7 +517,7 @@ class VM {
         break;
       case tOpVariableDeclareWithAssign:
         auto symbol = cast(IValue)code[pc++ + 1];
-        auto v = cast(IValue)code[pc++ + 1];
+        auto v = stack.pop;
         this.env.variables[symbol.getString] = v;
         break;
       case tOpPush:
@@ -516,38 +529,28 @@ class VM {
         stack.pop;
         break;
       case tOpAdd:
-        auto add = cast(OpAdd)op;
-        registers.A = stack.pop;
-        registers.B = stack.pop;
-        add.perform(registers);
+        IValue a = stack.pop, b = stack.pop;
+        registers.RET = a + b;
         stack.push(registers.RET);
         break;
       case tOpSub:
-        auto sub = cast(OpSub)op;
-        registers.A = stack.pop;
-        registers.B = stack.pop;
-        sub.perform(registers);
+        IValue a = stack.pop, b = stack.pop;
+        registers.RET = a - b;
         stack.push(registers.RET);
         break;
       case tOpMul:
-        auto mul = cast(OpMul)op;
-        registers.A = stack.pop;
-        registers.B = stack.pop;
-        mul.perform(registers);
+        IValue a = stack.pop, b = stack.pop;
+        registers.RET = a * b;
         stack.push(registers.RET);
         break;
       case tOpDiv:
-        auto div = cast(OpDiv)op;
-        registers.A = stack.pop;
-        registers.B = stack.pop;
-        div.perform(registers);
+        IValue a = stack.pop, b = stack.pop;
+        registers.RET = a / b;
         stack.push(registers.RET);
         break;
       case tOpMod:
-        auto mod = cast(OpMod)op;
-        registers.A = stack.pop;
-        registers.B = stack.pop;
-        mod.perform(registers);
+        IValue a = stack.pop, b = stack.pop;
+        registers.RET = a % b;
         stack.push(registers.RET);
         break;
       case tOpReturn:
@@ -556,6 +559,22 @@ class VM {
         auto v = cast(IValue)code[pc++ + 1];
         assert(v !is null, "Execute Error on tOpGetVariable");
         stack.push(env.variables[v.getString]);
+        break;
+      case tOpSetVariableR:
+        auto dst = cast(IValue)code[pc++ + 1];
+        auto src = cast(IValue)code[pc++ + 1];
+        this.env.variables[dst.getString] = registers.getRegister(
+            Registers.getRegisterID(src.getString));
+        break;
+      case tOpSetVariableI:
+        auto dst = cast(IValue)code[pc++ + 1];
+        auto v = cast(IValue)code[pc++ + 1];
+        this.env.variables[dst.getString] = v;
+        break;
+      case tOpSetVariablePop:
+        auto dst = cast(IValue)code[pc++ + 1];
+        auto v = stack.pop;
+        this.env.variables[dst.getString] = v;
         break;
       case tOpMovR:
         auto dst = cast(IValue)code[pc++ + 1];
@@ -573,7 +592,7 @@ class VM {
         string fname = func.getString;
         Env cpyEnv = this.env;
         this.env = this.env.funcs[fname].func_env;
-        this.execute(cpyEnv.funcs[fname].func_body);
+        registers.RET = this.execute(cpyEnv.funcs[fname].func_body);
         this.env = cpyEnv;
         break;
       case tOpPushR:
@@ -583,6 +602,118 @@ class VM {
       case tOpPopR:
         auto dst = cast(IValue)code[pc++ + 1];
         registers.setRegister(Registers.getRegisterID(dst.getString), stack.pop());
+        break;
+      case tOpNop:
+        break;
+      case tOpFunctionDeclare:
+        auto symbol = cast(IValue)code[pc++ + 1];
+        string func_name = symbol.getString;
+        auto params_count = cast(IValue)code[pc++ + 1];
+        string[] params;
+        foreach (_; 0 .. params_count.getLong) {
+          params ~= (cast(IValue)code[pc++ + 1]).getString;
+        }
+        auto op_count = cast(IValue)code[pc++ + 1];
+        Opcode[] func_body;
+        foreach (_; 0 .. op_count.getLong) {
+          func_body ~= code[pc++ + 1];
+        }
+        this.env.funcs[func_name] = new FuncScope(func_name, func_body, env.dup);
+        break;
+      case tOpEqualExpression:
+        IValue a = stack.pop, b = stack.pop;
+        registers.RET = new IValue(a == b);
+        stack.push(registers.RET);
+        break;
+      case tOpNotEqualExpression:
+        IValue a = stack.pop, b = stack.pop;
+        registers.RET = new IValue(a != b);
+        stack.push(registers.RET);
+        break;
+      case tOpLtExpression:
+        IValue a = stack.pop, b = stack.pop;
+        registers.RET = new IValue(a < b);
+        stack.push(registers.RET);
+        break;
+      case tOpLteExpression:
+        IValue a = stack.pop, b = stack.pop;
+        registers.RET = new IValue(a <= b);
+        stack.push(registers.RET);
+        break;
+      case tOpGtExpression:
+        IValue a = stack.pop, b = stack.pop;
+        registers.RET = new IValue(a > b);
+        stack.push(registers.RET);
+        break;
+      case tOpGteExpression:
+        IValue a = stack.pop, b = stack.pop;
+        registers.RET = new IValue(a >= b);
+        stack.push(registers.RET);
+        break;
+      case tOpAndExpression:
+        IValue a = stack.pop, b = stack.pop;
+        registers.RET = new IValue(a == b);
+        stack.push(registers.RET);
+        break;
+      case tOpOrExpression:
+        IValue a = stack.pop, b = stack.pop;
+        registers.RET = new IValue(a == b);
+        stack.push(registers.RET);
+        break;
+      case tOpXorExpression:
+        IValue a = stack.pop, b = stack.pop;
+        registers.RET = new IValue(a == b);
+        stack.push(registers.RET);
+        break;
+      case tOpPrint:
+        auto v = stack.pop;
+        if (v.vtype == ValueType.String) {
+          write(v.getString);
+        } else {
+          write(v);
+        }
+        break;
+      case tOpPrintln:
+        auto v = stack.pop;
+        if (v.vtype == ValueType.String) {
+          writeln(v.getString);
+        } else {
+          writeln(v);
+        }
+        break;
+      case tOpJumpRel:
+        auto v = cast(IValue)code[pc++ + 1];
+        pc += v.getLong;
+        break;
+      case tOpJumpAbs:
+        auto v = cast(IValue)code[pc++ + 1];
+        pc = v.getLong;
+        break;
+      case tOpIFStatement:
+        auto cond = stack.pop;
+        bool condResult;
+
+        final switch (cond.vtype) with (ValueType) {
+        case Long:
+          condResult = cond.getLong != 0;
+          break;
+        case Bool:
+          condResult = cond.getBool;
+          break;
+        case String:
+          throw new Exception("Execute Error Invalid Condition <string>");
+        case Null:
+          condResult = false;
+          break;
+        }
+
+        auto trueBlockLength = (cast(IValue)code[pc++ + 1]).getLong;
+
+        if (condResult) {
+          break;
+        } else {
+          pc += trueBlockLength;
+        }
         break;
       case tIValue:
         stack.push(cast(IValue)op);
