@@ -85,6 +85,6 @@ function fact(n, acc) {
     println(fib(35, 0, 1));
   }).buildAST.compileASTtoOpcode;
   VM vm = new VM;
-  //writeln("code : ", code);
+  writeln("code : ", code);
   writeln("result : ", vm.execute(code));
 }

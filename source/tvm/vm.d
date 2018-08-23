@@ -209,13 +209,13 @@ Opcode[] compileASTtoOpcode(AST ast) {
     return [opGetVariable] ~ compileASTtoOpcode(var.ident);
   case tStringLiteral:
     auto value = cast(StringLiteral)ast;
-    return [new IValue(value.value)];
+    return [opPush, new IValue(value.value)];
   case tInteger:
     auto value = cast(Integer)ast;
-    return [new IValue(value.value)];
+    return [opPush, new IValue(value.value)];
   case tBooleanLiteral:
     auto value = cast(BooleanLiteral)ast;
-    return [new IValue(value.value)];
+    return [opPush, new IValue(value.value)];
   case tParameter:
     auto param = cast(Parameter)ast;
     assert(param !is null, "Compile Error on <%s>".format(ast.type));
@@ -326,56 +326,26 @@ Opcode[] compileASTtoOpcode(AST ast) {
     auto expr = cast(AddExpression)ast;
     assert(expr !is null, "Compile Error on <%s>".format(ast.type));
     Opcode[] r = compileASTtoOpcode(expr.rexpr), l = compileASTtoOpcode(expr.lexpr);
-    if (r.length == 1 && (cast(IValue)r[0]) !is null) {
-      r = [opPush] ~ r;
-    }
-    if (l.length == 1 && (cast(IValue)l[0]) !is null) {
-      l = [opPush] ~ l;
-    }
     return r ~ l ~ [opAdd];
   case tSubExpression:
     auto expr = cast(SubExpression)ast;
     assert(expr !is null, "Compile Error on <%s>".format(ast.type));
     Opcode[] r = compileASTtoOpcode(expr.rexpr), l = compileASTtoOpcode(expr.lexpr);
-    if (r.length == 1 && (cast(IValue)r[0]) !is null) {
-      r = [opPush] ~ r;
-    }
-    if (l.length == 1 && (cast(IValue)l[0]) !is null) {
-      l = [opPush] ~ l;
-    }
     return r ~ l ~ [opSub];
   case tMulExpression:
     auto expr = cast(MulExpression)ast;
     assert(expr !is null, "Compile Error on <%s>".format(ast.type));
     Opcode[] r = compileASTtoOpcode(expr.rexpr), l = compileASTtoOpcode(expr.lexpr);
-    if (r.length == 1 && (cast(IValue)r[0]) !is null) {
-      r = [opPush] ~ r;
-    }
-    if (l.length == 1 && (cast(IValue)l[0]) !is null) {
-      l = [opPush] ~ l;
-    }
     return r ~ l ~ [opMul];
   case tDivExpression:
     auto expr = cast(DivExpression)ast;
     assert(expr !is null, "Compile Error on <%s>".format(ast.type));
     Opcode[] r = compileASTtoOpcode(expr.rexpr), l = compileASTtoOpcode(expr.lexpr);
-    if (r.length == 1 && (cast(IValue)r[0]) !is null) {
-      r = [opPush] ~ r;
-    }
-    if (l.length == 1 && (cast(IValue)l[0]) !is null) {
-      l = [opPush] ~ l;
-    }
     return r ~ l ~ [opDiv];
   case tModExpression:
     auto expr = cast(ModExpression)ast;
     assert(expr !is null, "Compile Error on <%s>".format(ast.type));
     Opcode[] r = compileASTtoOpcode(expr.rexpr), l = compileASTtoOpcode(expr.lexpr);
-    if (r.length == 1 && (cast(IValue)r[0]) !is null) {
-      r = [opPush] ~ r;
-    }
-    if (l.length == 1 && (cast(IValue)l[0]) !is null) {
-      l = [opPush] ~ l;
-    }
     return r ~ l ~ [opMod];
   case tCallExpression:
     auto call = cast(CallExpression)ast;
@@ -510,6 +480,7 @@ class VM {
   IValue execute(Opcode[] code) {
     for (size_t pc; pc < code.length; pc++) {
       Opcode op = code[pc];
+      //writeln("op : ", op.type);
       final switch (op.type) with (OpcodeType) {
       case tOpVariableDeclareOnlySymbol:
         auto symbol = cast(IValue)code[pc++ + 1];
@@ -716,8 +687,7 @@ class VM {
         }
         break;
       case tIValue:
-        stack.push(cast(IValue)op);
-        break;
+        throw new Error("IValue should not peek directly");
       }
     }
 
