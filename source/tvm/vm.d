@@ -186,10 +186,8 @@ Opcode[] compileASTtoOpcode(AST ast) {
     Opcode[] op_block = compileASTtoOpcode(block);
 
     loop_body = op_block ~ op_update;
-    long op_cond_length = op_cond.length.to!long;
-    loop_body ~= [opJumpRel, new IValue(-(loop_body.length.to!long + op_cond_length + 4))];
-    long loop_body_length = loop_body.length.to!long;
-    return op_vassign ~ op_cond ~ [opIFStatement, new IValue(loop_body_length)] ~ loop_body;
+    loop_body ~= [opJumpRel, new IValue(-(loop_body.length.to!long + op_cond.length.to!long + 4))];
+    return op_vassign ~ op_cond ~ [opIFStatement, new IValue(loop_body.length.to!long)] ~ loop_body;
   case tFunctionDeclare:
     auto func = cast(FunctionDeclare)ast;
     assert(func !is null, "Compile Error on <%s>".format(ast.type));
@@ -289,100 +287,46 @@ Opcode[] compileASTtoOpcode(AST ast) {
     auto expr = cast(EqualExpression)ast;
     assert(expr !is null, "Compile Error on <%s>".format(ast.type));
     Opcode[] r = compileASTtoOpcode(expr.rexpr), l = compileASTtoOpcode(expr.lexpr);
-    if (r.length == 1 && (cast(IValue)r[0]) !is null) {
-      r = [opPush] ~ r;
-    }
-    if (l.length == 1 && (cast(IValue)l[0]) !is null) {
-      l = [opPush] ~ l;
-    }
     return r ~ l ~ [opEqualExpression];
   case tNotEqualExpression:
     auto expr = cast(NotEqualExpression)ast;
     assert(expr !is null, "Compile Error on <%s>".format(ast.type));
     Opcode[] r = compileASTtoOpcode(expr.rexpr), l = compileASTtoOpcode(expr.lexpr);
-    if (r.length == 1 && (cast(IValue)r[0]) !is null) {
-      r = [opPush] ~ r;
-    }
-    if (l.length == 1 && (cast(IValue)l[0]) !is null) {
-      l = [opPush] ~ l;
-    }
     return r ~ l ~ [opNotEqualExpression];
   case tLtExpression:
     auto expr = cast(LtExpression)ast;
     assert(expr !is null, "Compile Error on <%s>".format(ast.type));
     Opcode[] r = compileASTtoOpcode(expr.rexpr), l = compileASTtoOpcode(expr.lexpr);
-    if (r.length == 1 && (cast(IValue)r[0]) !is null) {
-      r = [opPush] ~ r;
-    }
-    if (l.length == 1 && (cast(IValue)l[0]) !is null) {
-      l = [opPush] ~ l;
-    }
     return r ~ l ~ [opLtExpression];
   case tLteExpression:
     auto expr = cast(LteExpression)ast;
     assert(expr !is null, "Compile Error on <%s>".format(ast.type));
     Opcode[] r = compileASTtoOpcode(expr.rexpr), l = compileASTtoOpcode(expr.lexpr);
-    if (r.length == 1 && (cast(IValue)r[0]) !is null) {
-      r = [opPush] ~ r;
-    }
-    if (l.length == 1 && (cast(IValue)l[0]) !is null) {
-      l = [opPush] ~ l;
-    }
     return r ~ l ~ [opLteExpression];
   case tGtExpression:
     auto expr = cast(GtExpression)ast;
     assert(expr !is null, "Compile Error on <%s>".format(ast.type));
     Opcode[] r = compileASTtoOpcode(expr.rexpr), l = compileASTtoOpcode(expr.lexpr);
-    if (r.length == 1 && (cast(IValue)r[0]) !is null) {
-      r = [opPush] ~ r;
-    }
-    if (l.length == 1 && (cast(IValue)l[0]) !is null) {
-      l = [opPush] ~ l;
-    }
     return r ~ l ~ [opGtExpression];
   case tGteExpression:
     auto expr = cast(GteExpression)ast;
     assert(expr !is null, "Compile Error on <%s>".format(ast.type));
     Opcode[] r = compileASTtoOpcode(expr.rexpr), l = compileASTtoOpcode(expr.lexpr);
-    if (r.length == 1 && (cast(IValue)r[0]) !is null) {
-      r = [opPush] ~ r;
-    }
-    if (l.length == 1 && (cast(IValue)l[0]) !is null) {
-      l = [opPush] ~ l;
-    }
     return r ~ l ~ [opGteExpression];
   case tAndExpression:
     auto expr = cast(AndExpression)ast;
     assert(expr !is null, "Compile Error on <%s>".format(ast.type));
     Opcode[] r = compileASTtoOpcode(expr.rexpr), l = compileASTtoOpcode(expr.lexpr);
-    if (r.length == 1 && (cast(IValue)r[0]) !is null) {
-      r = [opPush] ~ r;
-    }
-    if (l.length == 1 && (cast(IValue)l[0]) !is null) {
-      l = [opPush] ~ l;
-    }
     return r ~ l ~ [opAndExpression];
   case tOrExpression:
     auto expr = cast(OrExpression)ast;
     assert(expr !is null, "Compile Error on <%s>".format(ast.type));
     Opcode[] r = compileASTtoOpcode(expr.rexpr), l = compileASTtoOpcode(expr.lexpr);
-    if (r.length == 1 && (cast(IValue)r[0]) !is null) {
-      r = [opPush] ~ r;
-    }
-    if (l.length == 1 && (cast(IValue)l[0]) !is null) {
-      l = [opPush] ~ l;
-    }
     return r ~ l ~ [opOrExpression];
   case tXorExpression:
     auto expr = cast(XorExpression)ast;
     assert(expr !is null, "Compile Error on <%s>".format(ast.type));
     Opcode[] r = compileASTtoOpcode(expr.rexpr), l = compileASTtoOpcode(expr.lexpr);
-    if (r.length == 1 && (cast(IValue)r[0]) !is null) {
-      r = [opPush] ~ r;
-    }
-    if (l.length == 1 && (cast(IValue)l[0]) !is null) {
-      l = [opPush] ~ l;
-    }
     return r ~ l ~ [opXorExpression];
   }
 }
@@ -414,8 +358,8 @@ class VM {
 
     for (size_t pc; pc < code.length; pc++) {
       Opcode op = code[pc];
-      // writeln("stack : ", stack.stack);
-      // writeln("op : ", op.type);
+      //writeln("stack : ", stack.stack);
+      //writeln("op : ", op.type);
       final switch (op.type) with (OpcodeType) {
       case tOpVariableDeclareOnlySymbol:
         auto symbol = cast(IValue)code[pc++ + 1];

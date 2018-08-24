@@ -126,9 +126,27 @@ void main() {
       function f(a) {
         if (a == 1) {
           return true;
+        }
+        return false;
+      }
+      f(1);
+    }, new IValue(true)),
+    tuple(q{
+      function f(a) {
+        if (a == 1) {
+          return true;
         } else {
           return false;
         }
+      }
+      f(2);
+    }, new IValue(false)),
+    tuple(q{
+      function f(a) {
+        if (a == 1) {
+          return true;
+        } 
+        return false;
       }
       f(2);
     }, new IValue(false)),
@@ -154,7 +172,20 @@ void main() {
         sum = sum + a;
       }
       sum;
-    }, new IValue(55))
+    }, new IValue(55)),
+    tuple(q{
+      function mult(a, b) {
+        return a * b;
+      }
+      function func(n) {
+        if (n <= 1) {
+          return 1;
+        } else {
+          return mult(n, func(n - 1));
+        }
+      }
+      func(10);
+    }, new IValue(3628800))
   ];
   foreach (test_case; vm_test_cases) {
     string src = test_case[0];
@@ -165,9 +196,17 @@ void main() {
   //dfmt on
 
   auto code = PARSER(q{
-    for (var a = 0; a < 10; a = a + 1) {
-      println(a);
+    function add(a, b) {
+      return a + b;
     }
+    function fib(n) {
+      if (n <= 1) {
+        return n;
+      } else {
+        return add(fib(n - 1), fib(n - 2));
+      }
+    }
+    println(fib(5));
   }).buildAST.compileASTtoOpcode;
   VM vm = new VM;
   writeln("code : ", code);
