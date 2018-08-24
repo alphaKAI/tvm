@@ -1,4 +1,5 @@
 import std.stdio;
+import std.format;
 import tvm.parser, tvm.vm;
 
 void main() {
@@ -54,19 +55,8 @@ void main() {
     writeln(PARSER(test_case).buildAST);
   }
 */
-  /*
-function fact(n, acc) {
-      if (n <= 1) {
-        return acc;
-      } else {
-        return fact(n - 1, acc * n);
-      }
-    }
-    println(fact(4, 1));
-*/
 
-  auto code = PARSER(q{
-    function fib(n, a, b) {
+  /*function fib(n, a, b) {
       if (n < 0) {
         if (n % 2 == 0) {
           return (0-1) * fib(n * (0-1));
@@ -83,6 +73,101 @@ function fact(n, acc) {
       return fib(n - 1, b, a + b);
     }
     println(fib(35, 0, 1));
+    */
+  /*function fib(n) {
+      print("n : ");
+      println(n);
+      if (n <= 1) {
+        return n;
+      } else {
+        return fib(n - 1) + fib(n - 2);
+      }
+      }
+    println(fib(5));*/
+
+  import tvm.value;
+
+  bool test(string src, IValue v) {
+    auto code = src.PARSER.buildAST.compileASTtoOpcode;
+    VM vm = new VM;
+    IValue ret = vm.execute(code);
+    return ret == v;
+  }
+
+  import std.typecons;
+
+  //dfmt off
+  Tuple!(string, IValue)[] vm_test_cases = [
+    tuple("1 + 1;", new IValue(2)),
+    tuple("2 - 1;", new IValue(1L)),
+    tuple("1 - 2;", new IValue(-1)),
+    tuple("1 * 2;", new IValue(2)),
+    tuple("3 * 4;", new IValue(12)),
+    tuple("4 / 2;", new IValue(2)),
+    tuple("2 / 4;", new IValue(0L)),
+    tuple("(1 + 2) * (4 / 2);", new IValue(6)),
+    tuple(q{
+      function func(a, b) {
+        return a + b;
+      }
+      func(1, 3);
+    }, new IValue(4)),
+    tuple(q{
+      function f(a) {
+        if (a == 1) {
+          return true;
+        } else {
+          return false;
+        }
+      }
+      f(1);
+    }, new IValue(true)),
+    tuple(q{
+      function f(a) {
+        if (a == 1) {
+          return true;
+        } else {
+          return false;
+        }
+      }
+      f(2);
+    }, new IValue(false)),
+    tuple(q{
+      function f(a) {
+        return a;
+      }
+      1 + f(3);
+    }, new IValue(4)),
+    tuple(q{
+      function fact(n, acc) {
+        if (n <= 1) {
+          return acc;
+        } else {
+          return fact(n - 1, acc * n);
+        }
+      }
+      fact(4, 1);
+    }, new IValue(24)),
+    tuple(q{
+      var sum = 0;
+      for(var a = 1; a < 11; a = a + 1) {
+        sum = sum + a;
+      }
+      sum;
+    }, new IValue(55))
+  ];
+  foreach (test_case; vm_test_cases) {
+    string src = test_case[0];
+    IValue v = test_case[1];
+    auto val = test(src, v);
+    assert(val, "Test for %s, result: %s".format(src, val));
+  }
+  //dfmt on
+
+  auto code = PARSER(q{
+    for (var a = 0; a < 10; a = a + 1) {
+      println(a);
+    }
   }).buildAST.compileASTtoOpcode;
   VM vm = new VM;
   writeln("code : ", code);

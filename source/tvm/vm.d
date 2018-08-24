@@ -3,86 +3,6 @@ import tvm.parser, tvm.value, tvm.util;
 import std.algorithm, std.format, std.conv;
 import std.stdio;
 
-enum RegisterID {
-  A,
-  B,
-  C,
-  D,
-  E,
-  F,
-  RET
-}
-
-class Registers {
-  IValue A, B, C, D, E, F, RET;
-
-  void setRegister(RegisterID id, IValue value) {
-    final switch (id) with (RegisterID) {
-    case A:
-      this.A = value;
-      break;
-    case B:
-      this.B = value;
-      break;
-    case C:
-      this.C = value;
-      break;
-    case D:
-      this.D = value;
-      break;
-    case E:
-      this.E = value;
-      break;
-    case F:
-      this.F = value;
-      break;
-    case RET:
-      this.RET = value;
-      break;
-    }
-  }
-
-  IValue getRegister(RegisterID id) {
-    final switch (id) with (RegisterID) {
-    case A:
-      return this.A;
-    case B:
-      return this.B;
-    case C:
-      return this.C;
-    case D:
-      return this.D;
-    case E:
-      return this.E;
-    case F:
-      return this.F;
-    case RET:
-      return this.RET;
-    }
-  }
-
-  static RegisterID getRegisterID(string reg) {
-    switch (reg) with (RegisterID) {
-    case "A":
-      return RegisterID.A;
-    case "B":
-      return RegisterID.B;
-    case "C":
-      return RegisterID.C;
-    case "D":
-      return RegisterID.D;
-    case "E":
-      return RegisterID.E;
-    case "F":
-      return RegisterID.F;
-    case "RET":
-      return RegisterID.RET;
-    default:
-      throw new Error("<Register Access Error>No such a register - %s".format(reg));
-    }
-  }
-}
-
 enum OpcodeType {
   tOpVariableDeclareOnlySymbol,
   tOpVariableDeclareWithAssign,
@@ -95,14 +15,9 @@ enum OpcodeType {
   tOpMod,
   tOpReturn,
   tOpGetVariable,
-  tOpSetVariableR,
   tOpSetVariableI,
   tOpSetVariablePop,
-  tOpMovR,
-  tOpMovI,
   tOpCall,
-  tOpPushR,
-  tOpPopR,
   tOpNop,
   tOpFunctionDeclare,
   tOpEqualExpression,
@@ -119,6 +34,7 @@ enum OpcodeType {
   tOpPrint,
   tOpPrintln,
   tOpIFStatement,
+  tOpAssignExpression,
   tIValue
 }
 
@@ -149,10 +65,6 @@ class Env {
   Env dup() {
     Env newEnv = new Env;
     newEnv.funcs = this.funcs;
-    /*
-    foreach (name, value; this.variables) {
-      newEnv.variables[name] = value.dup;
-    }*/
 
     return newEnv;
   }
@@ -261,14 +173,23 @@ Opcode[] compileASTtoOpcode(AST ast) {
     return compileASTtoOpcode(cond) ~ [opIFStatement] ~ cast(
         Opcode[])[new IValue(trueBlockLength)] ~ op_trueBlock ~ op_falseBlock;
   case tForStatement:
-    /*
-    auto forStmt = casT(ForStatement) ast;
+    auto forStmt = cast(ForStatement)ast;
     assert(forStmt !is null, "Compile Error on <%s>".format(ast.type));
     VariableDeclare vassign = forStmt.vassign;
     Expression cond = forStmt.cond, update = forStmt.update;
     Block block = forStmt.block;
-    */
-    throw new Error("Not Implemented <%s>".format(ast.type));
+
+    Opcode[] op_vassign = compileASTtoOpcode(vassign);
+    Opcode[] loop_body;
+    Opcode[] op_cond = compileASTtoOpcode(cond);
+    Opcode[] op_update = compileASTtoOpcode(update);
+    Opcode[] op_block = compileASTtoOpcode(block);
+
+    loop_body = op_block ~ op_update;
+    long op_cond_length = op_cond.length.to!long;
+    loop_body ~= [opJumpRel, new IValue(-(loop_body.length.to!long + op_cond_length + 4))];
+    long loop_body_length = loop_body.length.to!long;
+    return op_vassign ~ op_cond ~ [opIFStatement, new IValue(loop_body_length)] ~ loop_body;
   case tFunctionDeclare:
     auto func = cast(FunctionDeclare)ast;
     assert(func !is null, "Compile Error on <%s>".format(ast.type));
@@ -294,11 +215,11 @@ Opcode[] compileASTtoOpcode(AST ast) {
 
     op_blocks = prepends ~ op_blocks;
 
-    long op_blocks_count = op_blocks.length.to!long;
+    long op_blocks_length = op_blocks.length.to!long;
 
     auto ret = [opFunctionDeclare] ~ compileASTtoOpcode(symbol) ~ cast(
         Opcode[])[new IValue(op_params_count)] ~ op_params ~ cast(
-        Opcode[])[new IValue(op_blocks_count)] ~ op_blocks;
+        Opcode[])[new IValue(op_blocks_length)] ~ op_blocks;
     return ret;
   case tVariableDeclareOnlySymbol:
     auto var = cast(VariableDeclareOnlySymbol)ast;
@@ -316,12 +237,19 @@ Opcode[] compileASTtoOpcode(AST ast) {
       l = l[1 .. $];
     }
     auto e = compileASTtoOpcode(var.expr);
-    if (e.length == 2 && e[0].type == OpcodeType.tOpGetVariable) {
-      e = e[1 .. $];
-    }
+
     return e ~ [opVariableDeclareWithAssign] ~ l;
   case tAssignExpression:
-    throw new Error("Not Implemented <%s>".format(ast.type));
+    auto assign = cast(AssignExpression)ast;
+    auto l = compileASTtoOpcode(assign.lvalue);
+    if (l.length == 2 && l[0].type == OpcodeType.tOpGetVariable) {
+      l = l[1 .. $];
+    } else {
+      throw new Error("Compile Error on <%s>".format(ast.type));
+    }
+    auto e = compileASTtoOpcode(assign.expr);
+
+    return e ~ [opAssignExpression] ~ l;
   case tAddExpression:
     auto expr = cast(AddExpression)ast;
     assert(expr !is null, "Compile Error on <%s>".format(ast.type));
@@ -461,32 +389,44 @@ Opcode[] compileASTtoOpcode(AST ast) {
 
 class VM {
   Env env;
-  Registers registers;
-  Stack!IValue stack = new Stack!IValue;
+  Stack!IValue stack;
 
   this() {
     this.env = new Env;
-    this.registers = new Registers;
+    this.stack = new Stack!IValue;
 
     this.env.variables["a"] = new IValue(100);
-    this.env.funcs["f"] = new FuncScope("f", [opMovI, new IValue("RET"),
-        new IValue("100")], env.dup);
-    this.env.funcs["sq"] = new FuncScope("sq", [opPopR, new IValue("A"), opPushR,
-        new IValue("A"), opPushR, new IValue("A"), opMul], env.dup);
+    this.env.funcs["f"] = new FuncScope("f", [opPush, new IValue("100")], env.dup);
+    this.env.funcs["sq"] = new FuncScope("sq", [opSetVariablePop, new IValue("n"),
+        opGetVariable, new IValue("n"), opGetVariable, new IValue("n"), opMul], env.dup);
     this.env.funcs["print"] = new FuncScope("print", [opPrint], env);
     this.env.funcs["println"] = new FuncScope("println", [opPrintln], env);
   }
 
   IValue execute(Opcode[] code) {
+    IValue stackPeekTop() {
+      if (stack.stack.length) {
+        return stack.stack[$ - 1];
+      } else {
+        return null;
+      }
+    }
+
     for (size_t pc; pc < code.length; pc++) {
       Opcode op = code[pc];
-      //writeln("op : ", op.type);
+      // writeln("stack : ", stack.stack);
+      // writeln("op : ", op.type);
       final switch (op.type) with (OpcodeType) {
       case tOpVariableDeclareOnlySymbol:
         auto symbol = cast(IValue)code[pc++ + 1];
         this.env.variables[symbol.getString] = new IValue;
         break;
       case tOpVariableDeclareWithAssign:
+        auto symbol = cast(IValue)code[pc++ + 1];
+        auto v = stack.pop;
+        this.env.variables[symbol.getString] = v;
+        break;
+      case tOpAssignExpression:
         auto symbol = cast(IValue)code[pc++ + 1];
         auto v = stack.pop;
         this.env.variables[symbol.getString] = v;
@@ -501,41 +441,30 @@ class VM {
         break;
       case tOpAdd:
         IValue a = stack.pop, b = stack.pop;
-        registers.RET = a + b;
-        stack.push(registers.RET);
+        stack.push(a + b);
         break;
       case tOpSub:
         IValue a = stack.pop, b = stack.pop;
-        registers.RET = a - b;
-        stack.push(registers.RET);
+        stack.push(a - b);
         break;
       case tOpMul:
         IValue a = stack.pop, b = stack.pop;
-        registers.RET = a * b;
-        stack.push(registers.RET);
+        stack.push(a * b);
         break;
       case tOpDiv:
         IValue a = stack.pop, b = stack.pop;
-        registers.RET = a / b;
-        stack.push(registers.RET);
+        stack.push(a / b);
         break;
       case tOpMod:
         IValue a = stack.pop, b = stack.pop;
-        registers.RET = a % b;
-        stack.push(registers.RET);
+        stack.push(a % b);
         break;
       case tOpReturn:
-        return registers.RET;
+        return stackPeekTop;
       case tOpGetVariable:
         auto v = cast(IValue)code[pc++ + 1];
         assert(v !is null, "Execute Error on tOpGetVariable");
         stack.push(env.variables[v.getString]);
-        break;
-      case tOpSetVariableR:
-        auto dst = cast(IValue)code[pc++ + 1];
-        auto src = cast(IValue)code[pc++ + 1];
-        this.env.variables[dst.getString] = registers.getRegister(
-            Registers.getRegisterID(src.getString));
         break;
       case tOpSetVariableI:
         auto dst = cast(IValue)code[pc++ + 1];
@@ -547,32 +476,13 @@ class VM {
         auto v = stack.pop;
         this.env.variables[dst.getString] = v;
         break;
-      case tOpMovR:
-        auto dst = cast(IValue)code[pc++ + 1];
-        auto src = cast(IValue)code[pc++ + 1];
-        registers.setRegister(Registers.getRegisterID(dst.getString),
-            registers.getRegister(Registers.getRegisterID(src.getString)));
-        break;
-      case tOpMovI:
-        auto dst = cast(IValue)code[pc++ + 1];
-        auto v = cast(IValue)code[pc++ + 1];
-        registers.setRegister(Registers.getRegisterID(dst.getString), v);
-        break;
       case tOpCall:
         auto func = cast(IValue)code[pc++ + 1];
         string fname = func.getString;
         Env cpyEnv = this.env;
         this.env = this.env.funcs[fname].func_env;
-        registers.RET = this.execute(cpyEnv.funcs[fname].func_body);
+        this.execute(cpyEnv.funcs[fname].func_body);
         this.env = cpyEnv;
-        break;
-      case tOpPushR:
-        auto dst = cast(IValue)code[pc++ + 1];
-        stack.push(registers.getRegister(Registers.getRegisterID(dst.getString)));
-        break;
-      case tOpPopR:
-        auto dst = cast(IValue)code[pc++ + 1];
-        registers.setRegister(Registers.getRegisterID(dst.getString), stack.pop());
         break;
       case tOpNop:
         break;
@@ -584,58 +494,47 @@ class VM {
         foreach (_; 0 .. params_count.getLong) {
           params ~= (cast(IValue)code[pc++ + 1]).getString;
         }
-        auto op_count = cast(IValue)code[pc++ + 1];
+        auto op_blocks_length = cast(IValue)code[pc++ + 1];
         Opcode[] func_body;
-        foreach (_; 0 .. op_count.getLong) {
+        foreach (_; 0 .. op_blocks_length.getLong) {
           func_body ~= code[pc++ + 1];
         }
         this.env.funcs[func_name] = new FuncScope(func_name, func_body, env.dup);
         break;
       case tOpEqualExpression:
         IValue a = stack.pop, b = stack.pop;
-        registers.RET = new IValue(a == b);
-        stack.push(registers.RET);
+        stack.push(new IValue(a == b));
         break;
       case tOpNotEqualExpression:
         IValue a = stack.pop, b = stack.pop;
-        registers.RET = new IValue(a != b);
-        stack.push(registers.RET);
+        stack.push(new IValue(a != b));
         break;
       case tOpLtExpression:
         IValue a = stack.pop, b = stack.pop;
-        registers.RET = new IValue(a < b);
-        stack.push(registers.RET);
+        stack.push(new IValue(a < b));
         break;
       case tOpLteExpression:
         IValue a = stack.pop, b = stack.pop;
-        registers.RET = new IValue(a <= b);
-        stack.push(registers.RET);
+        stack.push(new IValue(a <= b));
         break;
       case tOpGtExpression:
         IValue a = stack.pop, b = stack.pop;
-        registers.RET = new IValue(a > b);
-        stack.push(registers.RET);
+        stack.push(new IValue(a > b));
         break;
       case tOpGteExpression:
         IValue a = stack.pop, b = stack.pop;
-        registers.RET = new IValue(a >= b);
-        stack.push(registers.RET);
+        stack.push(new IValue(a >= b));
         break;
       case tOpAndExpression:
         IValue a = stack.pop, b = stack.pop;
-        registers.RET = new IValue(a == b);
-        stack.push(registers.RET);
+        stack.push(new IValue(a && b));
         break;
       case tOpOrExpression:
         IValue a = stack.pop, b = stack.pop;
-        registers.RET = new IValue(a == b);
-        stack.push(registers.RET);
+        stack.push(new IValue(a || b));
         break;
       case tOpXorExpression:
-        IValue a = stack.pop, b = stack.pop;
-        registers.RET = new IValue(a == b);
-        stack.push(registers.RET);
-        break;
+        throw new Error("Not implemented <%s>".format(op.type));
       case tOpPrint:
         auto v = stack.pop;
         if (v.vtype == ValueType.String) {
@@ -691,47 +590,6 @@ class VM {
       }
     }
 
-    return registers.RET;
+    return stackPeekTop();
   }
 }
-
-/*
-  VariableDeclare < VariableDeclareWithAssign / VariableDeclareOnlySymbol
-  VariableDeclareOnlySymbol < "var" LeftValue
-  VariableDeclareWithAssign < "var" LeftValue "=" Expression
-
-  ParameterList < "()" / :"(" Parameter ("," Parameter)* :")"
-  Parameter < Expression
-
-  Value < LeftValue / RightValue
-  LeftValue < Variable
-  Variable < Identifier
-  RightValue < Integer / StringLiteral / BooleanLiteral
-  AssignExpression < LeftValue "=" Expression
-  ReturnExpression < "return" Expression
-  CallExpression < Symbol ParameterList
-  
-  CompareExpression < EqualExpression / LtExpression / LteExpression / GtExpression / GteExpression
-  EqualExpression < Expression "==" Expression
-  LtExpression < Expression "<" Expression
-  LteExpression < Expression "<=" Expression
-  GtExpression < Expression ">" Expression
-  GteExpression < Expression ">=" Expression
-
-  LogicExpression < AndExpression / OrExpression / XorExpression
-  AndExpression < Expression "&&" Expression
-  OrExpression < Expression "||" Expression
-  XorExpression < Expression "^" Expression
-
-  Expression < CompareExpression / LogicExpression / AssignExpression / MathExpression / Parens / CallExpression / ReturnExpression / Value
-  Parens < :"(" Expression :")"
-
-  IFStatement < "if" :"(" Expression :")" Block ("else" Block)?
-
-  Statement < FunctionDeclare / IFStatement / ((VariableDeclare / Expression) ";")
-  StatementList < Statement+
-
-  Block < "{" StatementList? "}"
-
-  BooleanLiteral < "true" / "false"
-*/

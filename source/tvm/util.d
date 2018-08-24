@@ -37,4 +37,10 @@ class Stack(T) {
     foreach (_; this) {
     }
   }
+
+  typeof(this) dup() {
+    typeof(this) newStack = new typeof(this);
+    newStack.stack = this.stack.dup;
+    return newStack;
+  }
 }
