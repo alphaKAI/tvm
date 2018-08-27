@@ -1,6 +1,6 @@
 import std.stdio;
 import std.format;
-import tvm.parser, tvm.vm;
+import tvm.parser, tvm.vm, tvm.compiler;
 
 void main() {
   /*

@@ -3,7 +3,7 @@ import std.exception;
 import std.traits;
 import std.conv;
 import std.algorithm, std.array, std.format;
-import tvm.vm;
+import tvm.opcode;
 
 enum ValueType {
   Long,
