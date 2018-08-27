@@ -33,11 +33,11 @@ class Stack(T) {
   }
 
   @property T front() {
-    return pop;
+    return stack[count - 1];
   }
 
   @property void popFront() {
-    pop;
+    count--;
   }
 
   @property void popAll() {
