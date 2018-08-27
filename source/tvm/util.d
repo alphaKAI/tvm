@@ -3,13 +3,16 @@ import std.array;
 
 class Stack(T) {
   T[] stack;
+  size_t capacity;
+  size_t count;
 
   this() {
+    capacity = 1024;
+    stack.length = capacity;
   }
 
   @property T pop() {
-    T t = stack[$ - 1];
-    stack.length--;
+    T t = stack[count-- - 1];
     return t;
   }
 
@@ -18,11 +21,15 @@ class Stack(T) {
   }
 
   @property void push(T value) {
-    stack ~= value;
+    if (count + 1 == capacity) {
+      capacity += 1024;
+      stack.length = capacity;
+    }
+    stack[count++] = value;
   }
 
   @property bool empty() {
-    return stack.empty;
+    return count == 0;
   }
 
   @property T front() {
@@ -36,11 +43,5 @@ class Stack(T) {
   @property void popAll() {
     foreach (_; this) {
     }
-  }
-
-  typeof(this) dup() {
-    typeof(this) newStack = new typeof(this);
-    newStack.stack = this.stack.dup;
-    return newStack;
   }
 }
