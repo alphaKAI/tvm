@@ -92,7 +92,11 @@ class %s : Opcode {
 }
 
 Opcode %s() {
-  return new %s;
+  static Opcode ret;
+  if (ret is null) {
+    ret = new %s;
+  }
+  return ret;
 }
 }.format(base, helper, base);
 }
