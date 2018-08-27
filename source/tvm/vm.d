@@ -48,7 +48,7 @@ class VM {
   IValue execute(Opcode[] code) {
     IValue stackPeekTop() {
       if (stack.stack.length) {
-        return stack.stack[$ - 1];
+        return stack.front;
       } else {
         return null;
       }
@@ -83,23 +83,28 @@ class VM {
         break;
       case tOpAdd:
         IValue a = stack.pop, b = stack.pop;
-        stack.push(a + b);
+        a.addTo(b);
+        stack.push(a);
         break;
       case tOpSub:
         IValue a = stack.pop, b = stack.pop;
-        stack.push(a - b);
+        a.subTo(b);
+        stack.push(a);
         break;
       case tOpMul:
         IValue a = stack.pop, b = stack.pop;
-        stack.push(a * b);
+        a.mulTo(b);
+        stack.push(a);
         break;
       case tOpDiv:
         IValue a = stack.pop, b = stack.pop;
-        stack.push(a / b);
+        a.divTo(b);
+        stack.push(a);
         break;
       case tOpMod:
         IValue a = stack.pop, b = stack.pop;
-        stack.push(a % b);
+        a.modTo(b);
+        stack.push(a);
         break;
       case tOpReturn:
         return stackPeekTop;
@@ -226,7 +231,6 @@ class VM {
         throw new Error("IValue should not peek directly");
       }
     }
-
     return stackPeekTop();
   }
 }
