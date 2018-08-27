@@ -48,6 +48,21 @@ string genTypeMethod(T)() {
   }.format(T.stringof);
 }
 
+/*
+  genOpCodeClassAndHelper willgenerate...
+  genOpCodeClassAndHelper!"tOpPop"
+  ↓
+  class OpPop : Opcode {
+    mixin(genTypeMethod!(typeof(this)));
+  }
+  Opcode opPop() {
+    static Opcode ret;
+    if (ret is null) {
+      ret = new OpPop;
+    }
+    return ret;
+  }
+ */
 string genOpCodeClassAndHelper(string t)() {
   string base = t[1 .. $];
   if (base == "IValue") {
@@ -71,6 +86,9 @@ Opcode %s() {
 }.format(base, helper, base);
 }
 
+/*
+  Generate all Instructions classes and helper function of them.
+ */
 static foreach (elem; __traits(allMembers, OpcodeType)) {
   mixin(genOpCodeClassAndHelper!(elem));
 }
