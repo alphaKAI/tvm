@@ -85,13 +85,16 @@ void main() {
       }
     println(fib(5));*/
 
-  /*
   import tvm.value;
 
   bool test(string src, IValue v) {
     auto code = src.PARSER.buildAST.compileASTtoOpcode;
     VM vm = new VM;
     IValue ret = vm.execute(code);
+    writeln("code : ", code);
+    writeln("ret : ", ret);
+    writeln("v : ", v);
+    writeln("vm.stack : ", vm.stack.stack);
     return ret == v;
   }
 
@@ -196,7 +199,14 @@ void main() {
   }
   //dfmt on
 
-  */
+  /*
+      for (var i = 0; i < 11; i = i + 1) {
+      print("fib(");
+      print(i);
+      print(") : ");
+      println(fib(i));
+    }
+    */
   auto code = PARSER(q{
     function fib(n) {
       if (n <= 1) {
@@ -205,12 +215,7 @@ void main() {
         return fib(n - 2) + fib(n - 1);
       }
     }
-    for (var i = 0; i < 11; i = i + 1) {
-      print("fib(");
-      print(i);
-      print(") : ");
-      println(fib(i));
-    }
+    println(fib(35));
   }).buildAST.compileASTtoOpcode;
   VM vm = new VM;
   writeln("code : ", code);

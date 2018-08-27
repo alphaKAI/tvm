@@ -47,7 +47,7 @@ class VM {
 
   IValue execute(Opcode[] code) {
     IValue stackPeekTop() {
-      if (stack.stack.length) {
+      if (!stack.empty) {
         return stack.front;
       } else {
         return null;
@@ -83,28 +83,23 @@ class VM {
         break;
       case tOpAdd:
         IValue a = stack.pop, b = stack.pop;
-        a.addTo(b);
-        stack.push(a);
+        stack.push(a + b);
         break;
       case tOpSub:
         IValue a = stack.pop, b = stack.pop;
-        a.subTo(b);
-        stack.push(a);
+        stack.push(a - b);
         break;
       case tOpMul:
         IValue a = stack.pop, b = stack.pop;
-        a.mulTo(b);
-        stack.push(a);
+        stack.push(a * b);
         break;
       case tOpDiv:
         IValue a = stack.pop, b = stack.pop;
-        a.divTo(b);
-        stack.push(a);
+        stack.push(a / b);
         break;
       case tOpMod:
         IValue a = stack.pop, b = stack.pop;
-        a.modTo(b);
-        stack.push(a);
+        stack.push(a % b);
         break;
       case tOpReturn:
         return stackPeekTop;
