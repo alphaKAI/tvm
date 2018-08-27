@@ -85,6 +85,7 @@ void main() {
       }
     println(fib(5));*/
 
+  /*
   import tvm.value;
 
   bool test(string src, IValue v) {
@@ -195,18 +196,21 @@ void main() {
   }
   //dfmt on
 
+  */
   auto code = PARSER(q{
-    function add(a, b) {
-      return a + b;
-    }
     function fib(n) {
       if (n <= 1) {
         return n;
       } else {
-        return add(fib(n - 1), fib(n - 2));
+        return fib(n - 2) + fib(n - 1);
       }
     }
-    println(fib(5));
+    for (var i = 0; i < 11; i = i + 1) {
+      print("fib(");
+      print(i);
+      print(") : ");
+      println(fib(i));
+    }
   }).buildAST.compileASTtoOpcode;
   VM vm = new VM;
   writeln("code : ", code);

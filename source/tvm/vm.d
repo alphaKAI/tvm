@@ -216,7 +216,6 @@ Opcode[] compileASTtoOpcode(AST ast) {
     long op_blocks_length = op_blocks.length.to!long;
 
     auto ret = [opFunctionDeclare] ~ compileASTtoOpcode(symbol) ~ cast(
-        Opcode[])[new IValue(op_params_count)] ~ op_params ~ cast(
         Opcode[])[new IValue(op_blocks_length)] ~ op_blocks;
     return ret;
   case tVariableDeclareOnlySymbol:
@@ -339,8 +338,6 @@ class VM {
     this.env = new Env;
     this.stack = new Stack!IValue;
 
-    this.env.variables["a"] = new IValue(100);
-    this.env.funcs["f"] = new FuncScope("f", [opPush, new IValue("100")], env.dup);
     this.env.funcs["sq"] = new FuncScope("sq", [opSetVariablePop, new IValue("n"),
         opGetVariable, new IValue("n"), opGetVariable, new IValue("n"), opMul], env.dup);
     this.env.funcs["print"] = new FuncScope("print", [opPrint], env);
@@ -424,7 +421,7 @@ class VM {
         auto func = cast(IValue)code[pc++ + 1];
         string fname = func.getString;
         Env cpyEnv = this.env;
-        this.env = this.env.funcs[fname].func_env;
+        this.env = this.env.funcs[fname].func_env.dup;
         this.execute(cpyEnv.funcs[fname].func_body);
         this.env = cpyEnv;
         break;
@@ -433,11 +430,6 @@ class VM {
       case tOpFunctionDeclare:
         auto symbol = cast(IValue)code[pc++ + 1];
         string func_name = symbol.getString;
-        auto params_count = cast(IValue)code[pc++ + 1];
-        string[] params;
-        foreach (_; 0 .. params_count.getLong) {
-          params ~= (cast(IValue)code[pc++ + 1]).getString;
-        }
         auto op_blocks_length = cast(IValue)code[pc++ + 1];
         Opcode[] func_body;
         foreach (_; 0 .. op_blocks_length.getLong) {
