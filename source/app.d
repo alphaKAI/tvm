@@ -91,10 +91,6 @@ void main() {
     auto code = src.PARSER.buildAST.compileASTtoOpcode;
     VM vm = new VM;
     IValue ret = vm.execute(code);
-    writeln("code : ", code);
-    writeln("ret : ", ret);
-    writeln("v : ", v);
-    writeln("vm.stack : ", vm.stack.stack);
     return ret == v;
   }
 
@@ -199,23 +195,20 @@ void main() {
   }
   //dfmt on
 
-  /*
-      for (var i = 0; i < 11; i = i + 1) {
-      print("fib(");
-      print(i);
-      print(") : ");
-      println(fib(i));
-    }
-    */
   auto code = PARSER(q{
     function fib(n) {
       if (n <= 1) {
         return n;
       } else {
-        return fib(n - 2) + fib(n - 1);
+        return fib(n - 1) + fib(n - 2);
       }
     }
-    println(fib(35));
+    for (var i = 0; i < 11; i = i + 1) {
+      print("fib(");
+      print(i);
+      print(") : ");
+      println(fib(i));
+    }
   }).buildAST.compileASTtoOpcode;
   VM vm = new VM;
   writeln("code : ", code);
