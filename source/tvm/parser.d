@@ -50,8 +50,9 @@ PARSER:
 
   IFStatement < "if" :"(" Expression :")" Block ("else" Block)?
   ForStatement < "for" :"(" VariableDeclare ";" Expression ";" Expression :")" Block
+  WhileStatement < "while" :"(" Expression :")" Block
 
-  Statement < FunctionDeclare / IFStatement / ForStatement / ((VariableDeclare / Expression) ";")
+  Statement < FunctionDeclare / IFStatement / ForStatement / WhileStatement / ((VariableDeclare / Expression) ";")
   StatementList < Statement+
 
   Block < "{" StatementList? "}"
@@ -84,6 +85,7 @@ enum ASTType {
   tBlock,
   tIFStatement,
   tForStatement,
+  tWhileStatement,
   tFunctionDeclare,
   tVariableDeclareOnlySymbol,
   tVariableDeclareWithAssign,
@@ -398,6 +400,30 @@ class ForStatement : Statement {
 
 AST forStatement(VariableDeclare vassign, Expression cond, Expression update, Block block) {
   return new ForStatement(vassign, cond, update, block);
+}
+
+class WhileStatement : Statement {
+  Expression cond;
+  Block block;
+  this(Expression cond, Block block) {
+    this.cond = cond;
+    this.block = block;
+  }
+
+  override string toString() {
+    //dfmt off
+    return "WhileStatement <cond: %s> <Block: %s>".format(
+      cond is null ? "" : cond.toString,
+      block.toString
+    );
+    //dfmt on
+  }
+
+  mixin(genTypeMethod!(typeof(this)));
+}
+
+AST whileStatement(Expression cond, Block block) {
+  return new WhileStatement(cond, block);
 }
 
 interface Declare : Statement {
@@ -890,6 +916,12 @@ AST buildAST(ParseTree p) {
     auto block = cast(Block)buildAST(p.children[3]);
     assert(block !is null, "Parse Error on %s<block>".format(p.name));
     return forStatement(vassign, cond, update, block);
+  case "PARSER.WhileStatement":
+    auto cond = cast(Expression)buildAST(p.children[0]);
+    assert(cond !is null, "Parse Error on %s<cond>".format(p.name));
+    auto block = cast(Block)buildAST(p.children[1]);
+    assert(block !is null, "Parse Error on %s<block>".format(p.name));
+    return whileStatement(cond, block);
   case "PARSER.AssignExpression":
     LeftValue l = cast(LeftValue)buildAST(p.children[0]);
     assert(l !is null, "Parse Error on AssignExpression<l>");

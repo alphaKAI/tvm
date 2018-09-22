@@ -3,7 +3,64 @@ import std.format;
 import tvm.parser, tvm.vm, tvm.compiler;
 
 void main() {
+  auto code = PARSER(q{
+    println("Hello, world!");
+  }).buildAST.compileASTtoOpcode;
+  VM vm = new VM;
+  writeln("code : ", code);
+  writeln("result : ", vm.execute(code));
+}
+
+void fib_example() {
+  /*function fib(n, a, b) {
+      if (n < 0) {
+        if (n % 2 == 0) {
+          return (0-1) * fib(n * (0-1));
+        } else {
+          return (0-1) * fib(n * (0-1));
+        }
+      }
+      if (n < 1) {
+        return a;
+      }
+      if (n < 2) {
+        return b;
+      }
+      return fib(n - 1, b, a + b);
+    }
+    println(fib(35, 0, 1));
+    */
+  /*function fib(n) {
+      print("n : ");
+      println(n);
+      if (n <= 1) {
+        return n;
+      } else {
+        return fib(n - 1) + fib(n - 2);
+      }
+      }
+    println(fib(5));*/
   /*
+  for (var i = 0; i < 11; i = i + 1) {
+      print("fib(");
+      print(i);
+      print(") : ");
+      println(fib(i));
+    }*/
+  /*
+  
+    function fib(n) {
+      if (n <= 1) {
+        return n;
+      } else {
+        return fib(n - 1) + fib(n - 2);
+      }
+    }
+    println(fib(35));
+  */
+}
+
+void parse_test() {
   string[] test_cases = [
     "var foo;", `var foo = "value";`, "var foo = variable;", `function funcName(a, b) {
       a = b;
@@ -54,37 +111,9 @@ void main() {
     writeln("source: ", test_case);
     writeln(PARSER(test_case).buildAST);
   }
-*/
+}
 
-  /*function fib(n, a, b) {
-      if (n < 0) {
-        if (n % 2 == 0) {
-          return (0-1) * fib(n * (0-1));
-        } else {
-          return (0-1) * fib(n * (0-1));
-        }
-      }
-      if (n < 1) {
-        return a;
-      }
-      if (n < 2) {
-        return b;
-      }
-      return fib(n - 1, b, a + b);
-    }
-    println(fib(35, 0, 1));
-    */
-  /*function fib(n) {
-      print("n : ");
-      println(n);
-      if (n <= 1) {
-        return n;
-      } else {
-        return fib(n - 1) + fib(n - 2);
-      }
-      }
-    println(fib(5));*/
-
+void exec_test() {
   import tvm.value;
 
   bool test(string src, IValue v) {
@@ -194,23 +223,4 @@ void main() {
     assert(val, "Test for %s, result: %s".format(src, val));
   }
   //dfmt on
-
-  auto code = PARSER(q{
-    function fib(n) {
-      if (n <= 1) {
-        return n;
-      } else {
-        return fib(n - 1) + fib(n - 2);
-      }
-    }
-    for (var i = 0; i < 11; i = i + 1) {
-      print("fib(");
-      print(i);
-      print(") : ");
-      println(fib(i));
-    }
-  }).buildAST.compileASTtoOpcode;
-  VM vm = new VM;
-  writeln("code : ", code);
-  writeln("result : ", vm.execute(code));
 }

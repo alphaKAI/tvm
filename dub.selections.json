@@ -1,7 +1,7 @@
 {
 	"fileVersion": 1,
 	"versions": {
-		"kontainer": "0.0.2",
+		"llvm-d": "2.3.0",
 		"pegged": "0.4.3"
 	}
 }

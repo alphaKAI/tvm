@@ -89,6 +89,19 @@ Opcode[] compileASTtoOpcode(AST ast) {
     loop_body = op_block ~ op_update;
     loop_body ~= [opJumpRel, new IValue(-(loop_body.length.to!long + op_cond.length.to!long + 4))];
     return op_vassign ~ op_cond ~ opIFStatement ~ (new IValue(loop_body.length.to!long)) ~ loop_body;
+  case tWhileStatement:
+    auto whileStmt = cast(WhileStatement)ast;
+    assert(whileStmt !is null, "Compile Error on <%s>".format(ast.type));
+    Expression cond = whileStmt.cond;
+    Block block = whileStmt.block;
+
+    Opcode[] loop_body;
+    Opcode[] op_cond = compileASTtoOpcode(cond);
+    Opcode[] op_block = compileASTtoOpcode(block);
+
+    loop_body ~= op_block;
+    loop_body ~= [opJumpRel, new IValue(-(op_block.length.to!long + op_cond.length.to!long + 4))];
+    return op_cond ~ opIFStatement ~ (new IValue(loop_body.length.to!long)) ~ loop_body;
   case tFunctionDeclare:
     auto func = cast(FunctionDeclare)ast;
     assert(func !is null, "Compile Error on <%s>".format(ast.type));
