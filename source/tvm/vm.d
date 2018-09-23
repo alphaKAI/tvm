@@ -1,9 +1,9 @@
 module tvm.vm;
 import tvm.parser, tvm.value, tvm.util, tvm.opcode;
-import std.algorithm, std.format;
+import std.algorithm, std.format, std.conv;
 import std.stdio;
 
-class FuncScope {
+class VMFunction {
   string func_name;
   Opcode[] func_body;
   Env func_env;
@@ -16,11 +16,11 @@ class FuncScope {
 }
 
 class Env {
-  FuncScope[string] funcs;
+  VMFunction[string] funcs;
   IValue[string] variables;
 
-  void addFuncScope(string func_name, Opcode[] func_body) {
-    funcs[func_name] = new FuncScope(func_name, func_body, this.dup);
+  void addVMFunction(string func_name, Opcode[] func_body) {
+    funcs[func_name] = new VMFunction(func_name, func_body, this.dup);
   }
 
   Env dup() {
@@ -39,10 +39,11 @@ class VM {
     this.env = new Env;
     this.stack = new Stack!IValue;
 
-    this.env.funcs["sq"] = new FuncScope("sq", [opSetVariablePop, new IValue("n"),
-        opGetVariable, new IValue("n"), opGetVariable, new IValue("n"), opMul], env.dup);
-    this.env.funcs["print"] = new FuncScope("print", [opPrint], env);
-    this.env.funcs["println"] = new FuncScope("println", [opPrintln], env);
+    this.env.funcs["sq"] = new VMFunction("sq", [opSetVariablePop,
+        new IValue("n"), opGetVariable, new IValue("n"), opGetVariable, new IValue("n"), opMul],
+        env.dup);
+    this.env.funcs["print"] = new VMFunction("print", [opPrint], env);
+    this.env.funcs["println"] = new VMFunction("println", [opPrintln], env);
   }
 
   IValue execute(Opcode[] code) {
@@ -56,7 +57,6 @@ class VM {
 
     for (size_t pc; pc < code.length; pc++) {
       Opcode op = code[pc];
-      //writeln("stack : ", stack.stack);
       //writeln("op : ", op.type);
       final switch (op.type) with (OpcodeType) {
       case tOpVariableDeclareOnlySymbol:
@@ -136,7 +136,7 @@ class VM {
         foreach (_; 0 .. op_blocks_length.getLong) {
           func_body ~= code[pc++ + 1];
         }
-        this.env.funcs[func_name] = new FuncScope(func_name, func_body, env.dup);
+        this.env.funcs[func_name] = new VMFunction(func_name, func_body, env.dup);
         break;
       case tOpEqualExpression:
         IValue a = stack.pop, b = stack.pop;
@@ -209,6 +209,8 @@ class VM {
           break;
         case String:
           throw new Exception("Execute Error Invalid Condition <string>");
+        case Array:
+          throw new Exception("Execute Error Invalid Condition <array>");
         case Null:
           condResult = false;
           break;
@@ -221,6 +223,17 @@ class VM {
         } else {
           pc += trueBlockLength;
         }
+        break;
+      case tOpSetArrayElement:
+        auto variable = (cast(IValue)code[pc++ + 1]).getString;
+        auto idx = (cast(IValue)code[pc++ + 1]).getLong;
+        auto val = stack.pop;
+        env.variables[variable].setArrayElement(idx, val);
+        break;
+      case tOpGetArrayElement:
+        auto variable = (cast(IValue)code[pc++ + 1]).getString;
+        auto idx = (cast(IValue)code[pc++ + 1]).getLong;
+        stack.push(env.variables[variable][idx]);
         break;
       case tIValue:
         throw new Error("IValue should not peek directly");

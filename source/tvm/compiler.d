@@ -29,6 +29,18 @@ Opcode[] compileASTtoOpcode(AST ast) {
   case tBooleanLiteral:
     auto value = cast(BooleanLiteral)ast;
     return [opPush, new IValue(value.value)];
+  case tArrayLiteral:
+    auto value = cast(ArrayLiteral)ast;
+    IValue[] array;
+    foreach (elem; value.value) {
+      auto temp = compileASTtoOpcode(elem);
+      if (temp.length == 2 && temp[0].type == OpcodeType.tOpPush) {
+        array ~= cast(IValue)temp[1];
+      } else {
+        throw new Error("ERROR, compile array");
+      }
+    }
+    return [opPush, new IValue(array)];
   case tParameter:
     auto param = cast(Parameter)ast;
     assert(param !is null, "Compile Error on <%s>".format(ast.type));
@@ -241,5 +253,38 @@ Opcode[] compileASTtoOpcode(AST ast) {
     assert(expr !is null, "Compile Error on <%s>".format(ast.type));
     Opcode[] r = compileASTtoOpcode(expr.rexpr), l = compileASTtoOpcode(expr.lexpr);
     return r ~ l ~ opXorExpression;
+  case tArrayElementSetExpression:
+    auto arrayElemSetExpr = cast(ArrayElementSetExpression)ast;
+    Opcode[] variable_op = compileASTtoOpcode(arrayElemSetExpr.variable);
+    if (variable_op.length == 2 && variable_op[0].type == OpcodeType.tOpGetVariable) {
+      variable_op = variable_op[1 .. $];
+    } else {
+      throw new Error("Compile Error on <%s>".format(ast.type));
+    }
+    Opcode[] idx_op = compileASTtoOpcode(arrayElemSetExpr.idx);
+    if (idx_op.length == 2 && idx_op[0].type == OpcodeType.tOpPush) {
+      idx_op = idx_op[1 .. $];
+    } else {
+      throw new Error("Compile Error on <%s>".format(ast.type));
+    }
+    Opcode[] rexpr_op = compileASTtoOpcode(arrayElemSetExpr.rexpr);
+
+    return rexpr_op ~ opSetArrayElement ~ variable_op ~ idx_op;
+  case tArrayElementGetExpression:
+    auto arrayElemGetExpr = cast(ArrayElementGetExpression)ast;
+    Opcode[] variable_op = compileASTtoOpcode(arrayElemGetExpr.variable);
+    if (variable_op.length == 2 && variable_op[0].type == OpcodeType.tOpGetVariable) {
+      variable_op = variable_op[1 .. $];
+    } else {
+      throw new Error("Compile Error on <%s>".format(ast.type));
+    }
+    Opcode[] idx_op = compileASTtoOpcode(arrayElemGetExpr.idx);
+    if (idx_op.length == 2 && idx_op[0].type == OpcodeType.tOpPush) {
+      idx_op = idx_op[1 .. $];
+    } else {
+      throw new Error("Compile Error on <%s>".format(ast.type));
+    }
+
+    return opGetArrayElement ~ variable_op ~ idx_op;
   }
 }

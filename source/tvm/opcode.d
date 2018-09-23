@@ -15,6 +15,8 @@ enum OpcodeType {
   tOpGetVariable,
   tOpSetVariableI,
   tOpSetVariablePop,
+  tOpSetArrayElement,
+  tOpGetArrayElement,
   tOpCall,
   tOpNop,
   tOpFunctionDeclare,

@@ -21,7 +21,7 @@ PARSER:
   Value < LeftValue / RightValue
   LeftValue < Variable
   Variable < Identifier
-  RightValue < Integer / StringLiteral / BooleanLiteral
+  RightValue < Integer / StringLiteral / BooleanLiteral / ArrayLiteral
   AssignExpression < LeftValue "=" Expression
   ReturnExpression < "return" Expression
   MathExpression < AddExpression / SubExpression / MulExpression / DivExpression / ModExpression
@@ -31,6 +31,8 @@ PARSER:
   DivExpression < Expression "/" Expression
   ModExpression < Expression "%" Expression
   CallExpression < Symbol ParameterList
+  ArrayElementSetExpression < Variable "[" Integer "]" "=" Expression
+  ArrayElementGetExpression < Variable "[" Integer "]"
   
   CompareExpression < EqualExpression / NotEqualExpression / LtExpression / LteExpression / GtExpression / GteExpression
   EqualExpression < Expression "==" Expression
@@ -45,7 +47,7 @@ PARSER:
   OrExpression < Expression "||" Expression
   XorExpression < Expression "^" Expression
 
-  Expression < CompareExpression / LogicExpression / AssignExpression / MathExpression / Parens / CallExpression / ReturnExpression / Value
+  Expression < CompareExpression / LogicExpression / AssignExpression / MathExpression / Parens / CallExpression / ReturnExpression / ArrayElementSetExpression / ArrayElementGetExpression / Value
   Parens < :"(" Expression :")"
 
   IFStatement < "if" :"(" Expression :")" Block ("else" Block)?
@@ -58,6 +60,8 @@ PARSER:
   Block < "{" StatementList? "}"
 
   BooleanLiteral < "true" / "false"
+
+  ArrayLiteral < "[]" / "[" Expression ("," Expression)* "]"
 
   Integer <~ digit+
   Identifier <~ !Keyword [a-zA-Z_] [a-zA-Z0-9_]*
@@ -105,7 +109,10 @@ enum ASTType {
   tGteExpression,
   tAndExpression,
   tOrExpression,
-  tXorExpression
+  tXorExpression,
+  tArrayLiteral,
+  tArrayElementSetExpression,
+  tArrayElementGetExpression
 }
 
 string genTypeMethod(T)() {
@@ -260,6 +267,23 @@ class BooleanLiteral : RightValue {
 
 AST booleanLit(bool value) {
   return new BooleanLiteral(value);
+}
+
+class ArrayLiteral : RightValue {
+  Value[] value;
+  this(Value[] value) {
+    this.value = value;
+  }
+
+  override string toString() {
+    return "ArrayLiteral <%s>".format(this.value);
+  }
+
+  mixin(genTypeMethod!(typeof(this)));
+}
+
+AST arrayLit(Value[] value) {
+  return new ArrayLiteral(value);
 }
 
 class Parameter : AST {
@@ -794,6 +818,48 @@ AST xorExpression(Expression lexpr, Expression rexpr) {
   return new XorExpression(lexpr, rexpr);
 }
 
+class ArrayElementSetExpression : Expression {
+  Variable variable;
+  Integer idx;
+  Expression rexpr;
+  this(Variable variable, Integer idx, Expression rexpr) {
+    this.variable = variable;
+    this.idx = idx;
+    this.rexpr = rexpr;
+  }
+
+  override string toString() {
+    return "ArrayElementSetExpression <%s, %s, %s>".format(variable.toString,
+        idx.toString, rexpr.toString);
+  }
+
+  mixin(genTypeMethod!(typeof(this)));
+}
+
+AST arrayElementSetExpression(Variable variable, Integer idx, Expression rexpr) {
+  return new ArrayElementSetExpression(variable, idx, rexpr);
+}
+
+class ArrayElementGetExpression : Expression {
+  Variable variable;
+  Integer idx;
+
+  this(Variable variable, Integer idx) {
+    this.variable = variable;
+    this.idx = idx;
+  }
+
+  override string toString() {
+    return "ArrayElementGetExpression <%s, %s>".format(variable.toString, idx.toString);
+  }
+
+  mixin(genTypeMethod!(typeof(this)));
+}
+
+AST arrayElementGetExpression(Variable variable, Integer idx) {
+  return new ArrayElementGetExpression(variable, idx);
+}
+
 AST buildAST(ParseTree p) {
   /*
   import std.stdio;
@@ -1042,5 +1108,25 @@ AST buildAST(ParseTree p) {
   case "PARSER.Identifier":
     auto e = p.matches[0];
     return ident(e);
+  case "PARSER.ArrayLiteral":
+    Value[] array;
+    foreach (elem; p.children) {
+      array ~= cast(Value)buildAST(elem);
+    }
+    return arrayLit(array);
+  case "PARSER.ArrayElementSetExpression":
+    Variable variable = cast(Variable)buildAST(p.children[0]);
+    assert(variable !is null, "Parse Error on %s<variable>".format(p.name));
+    Integer idx = cast(Integer)buildAST(p.children[1]);
+    assert(idx !is null, "Parse Error on %s<idx>".format(p.name));
+    Expression rexpr = cast(Expression)buildAST(p.children[2]);
+    assert(rexpr !is null, "Parse Error on %s<rxpr>".format(p.name));
+    return arrayElementSetExpression(variable, idx, rexpr);
+  case "PARSER.ArrayElementGetExpression":
+    Variable variable = cast(Variable)buildAST(p.children[0]);
+    assert(variable !is null, "Parse Error on %s<variable>".format(p.name));
+    Integer idx = cast(Integer)buildAST(p.children[1]);
+    assert(idx !is null, "Parse Error on %s<idx>".format(p.name));
+    return arrayElementGetExpression(variable, idx);
   }
 }
