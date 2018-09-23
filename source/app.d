@@ -1,11 +1,37 @@
-import std.stdio;
-import std.format;
+import std.stdio, std.file;
+import std.format, std.string;
 import tvm.parser, tvm.vm, tvm.compiler;
 
-void main() {
-  auto code = PARSER(q{
-    println("Hello, world!");
-  }).buildAST.compileASTtoOpcode;
+void main(string[] args) {
+  args = args[1 .. $];
+  if (args.length == 0) {
+    auto code = PARSER(q{
+      println("Hello, world!");
+    }).buildAST.compileASTtoOpcode;
+    VM vm = new VM;
+    writeln("code : ", code);
+    writeln("result : ", vm.execute(code));
+  } else {
+    VM vm = new VM;
+    if (args[0] == "-r" || args[0] == "--repl") {
+      for (;;) {
+        write("=> ");
+        string input = readln.chomp;
+        if (input == "exit") {
+          break;
+        }
+        auto code = input.PARSER.buildAST.compileASTtoOpcode;
+        //writeln("code : ", code);
+        writeln("result : ", vm.execute(code));
+      }
+    } else {
+      executeFile(args[0]);
+    }
+  }
+}
+
+void executeFile(string file_path) {
+  auto code = readText(file_path).PARSER.buildAST.compileASTtoOpcode;
   VM vm = new VM;
   writeln("code : ", code);
   writeln("result : ", vm.execute(code));
@@ -94,8 +120,8 @@ void parse_test() {
       function func() {
         return 1 || b;
       }
-    },
-    q{ 1; }, q{
+    }, q{ 1; },
+    q{
       (1 + 2) * (4 / 2);
     }, q{
       func((1 + 2) * (4 / 2));
@@ -103,6 +129,12 @@ void parse_test() {
       1 + 2 * 3 / 4 + 1;
     }, q{
       1 + 1 + 1;
+    }, q{
+      [];
+    }, q{
+      [1, 2, 3];
+    }, q{
+      [1, "abc", [[], 1, 2, 3]];
     }
   ];
 
