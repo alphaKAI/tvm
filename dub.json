@@ -8,7 +8,6 @@
 	"license": "proprietary",
 	"dependencies": {
 		"pegged": "~>0.4.2",
-		"llvm-d": "*"
-	},
-	"libs": ["LLVM"]
+		"llvm-d":"*"
+	}
 }

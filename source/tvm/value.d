@@ -1,15 +1,35 @@
 module tvm.value;
 import std.exception;
 import std.traits;
+import std.format;
 import std.conv;
 import std.algorithm, std.array, std.format;
 import tvm.opcode;
+
+class VMFunction {
+  import tvm.vm : Env;
+
+  string func_name;
+  Opcode[] func_body;
+  Env func_env;
+
+  this(string func_name, Opcode[] func_body, Env func_env) {
+    this.func_name = func_name;
+    this.func_body = func_body;
+    this.func_env = func_env;
+  }
+
+  VMFunction dup() {
+    return new VMFunction(this.func_name, this.func_body, this.func_env.dup);
+  }
+}
 
 enum ValueType {
   Long,
   String,
   Bool,
   Array,
+  Function,
   Null
 }
 
@@ -21,6 +41,7 @@ class IValue : Opcode {
     string string_value;
     bool bool_value;
     IValue[] array_value;
+    VMFunction function_value;
   }
 
   this() {
@@ -47,6 +68,10 @@ class IValue : Opcode {
     this.opAssign(value);
   }
 
+  this(VMFunction value) {
+    this.opAssign(value);
+  }
+
   long getLong() {
     enforce(this.vtype == ValueType.Long);
     return this.long_value;
@@ -65,6 +90,11 @@ class IValue : Opcode {
   IValue[] getArray() {
     enforce(this.vtype == ValueType.Array);
     return this.array_value;
+  }
+
+  VMFunction getFunction() {
+    enforce(this.vtype == ValueType.Function);
+    return this.function_value;
   }
 
   auto getNull() {
@@ -95,6 +125,12 @@ class IValue : Opcode {
     this.vtype = ValueType.Array;
   }
 
+  void opAssign(VMFunction value) {
+    this.init;
+    this.function_value = value;
+    this.vtype = ValueType.Function;
+  }
+
   override string toString() {
     final switch (this.vtype) with (ValueType) {
     case Long:
@@ -109,6 +145,8 @@ class IValue : Opcode {
         array_str ~= elem.toString;
       }
       return "[" ~ array_str.join(", ") ~ "]";
+    case Function:
+      return "Function<name:%s>".format(this.function_value.func_name);
     case Null:
       return "null";
     }
@@ -212,6 +250,8 @@ class IValue : Opcode {
         }
       }
       return true;
+    case Function:
+      throw new Exception("Con't compare with Function");
     case Null:
       throw new Exception("Can't compare with Null");
     }
@@ -255,6 +295,8 @@ class IValue : Opcode {
       throw new Exception("Can't compare with Bool");
     case Array:
       throw new Exception("Can't compare with Array");
+    case Function:
+      throw new Exception("Can't compare with Function");
     case Null:
       throw new Exception("Can't compare with Null");
     }
@@ -270,6 +312,8 @@ class IValue : Opcode {
       return new IValue(this.bool_value);
     case Array:
       return new IValue(this.array_value.dup);
+    case Function:
+      return new IValue(this.function_value.dup);
     case Null:
       return new IValue;
     }

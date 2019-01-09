@@ -13,7 +13,6 @@ enum OpcodeType {
   tOpMod,
   tOpReturn,
   tOpGetVariable,
-  tOpSetVariableI,
   tOpSetVariablePop,
   tOpSetArrayElement,
   tOpGetArrayElement,

@@ -3,30 +3,15 @@ import tvm.parser, tvm.value, tvm.util, tvm.opcode;
 import std.algorithm, std.format, std.conv;
 import std.stdio;
 
-class VMFunction {
-  string func_name;
-  Opcode[] func_body;
-  Env func_env;
-
-  this(string func_name, Opcode[] func_body, Env func_env) {
-    this.func_name = func_name;
-    this.func_body = func_body;
-    this.func_env = func_env;
-  }
-}
-
 class Env {
-  VMFunction[string] funcs;
   IValue[string] variables;
 
   void addVMFunction(string func_name, Opcode[] func_body) {
-    funcs[func_name] = new VMFunction(func_name, func_body, this.dup);
+    this.variables[func_name] = new VMFunction(func_name, func_body, this.dup);
   }
 
   Env dup() {
     Env newEnv = new Env;
-    newEnv.funcs = this.funcs;
-
     return newEnv;
   }
 }
@@ -38,12 +23,13 @@ class VM {
   this() {
     this.env = new Env;
     this.stack = new Stack!IValue;
-
-    this.env.funcs["sq"] = new VMFunction("sq", [opSetVariablePop,
-        new IValue("n"), opGetVariable, new IValue("n"), opGetVariable, new IValue("n"), opMul],
-        env.dup);
-    this.env.funcs["print"] = new VMFunction("print", [opPrint], env);
-    this.env.funcs["println"] = new VMFunction("println", [opPrintln], env);
+    // dfmt off
+    this.env.variables["sq"] = new IValue(new VMFunction("sq", [opSetVariablePop, new IValue("n"),
+                                                                opGetVariable, new IValue("n"),
+                                                                opGetVariable, new IValue("n"), opMul], env.dup));
+    // dfmt on
+    this.env.variables["print"] = new IValue(new VMFunction("print", [opPrint], env));
+    this.env.variables["println"] = new IValue(new VMFunction("println", [opPrintln], env));
   }
 
   IValue execute(Opcode[] code) {
@@ -106,12 +92,11 @@ class VM {
       case tOpGetVariable:
         auto v = cast(IValue)code[pc++ + 1];
         assert(v !is null, "Execute Error on tOpGetVariable");
-        stack.push(env.variables[v.getString]);
-        break;
-      case tOpSetVariableI:
-        auto dst = cast(IValue)code[pc++ + 1];
-        auto v = cast(IValue)code[pc++ + 1];
-        this.env.variables[dst.getString] = v;
+        if (v.getString in env.variables) {
+          stack.push(env.variables[v.getString]);
+        } else {
+          throw new Exception("No such a variable %s".format(v.getString));
+        }
         break;
       case tOpSetVariablePop:
         auto dst = cast(IValue)code[pc++ + 1];
@@ -122,8 +107,8 @@ class VM {
         auto func = cast(IValue)code[pc++ + 1];
         string fname = func.getString;
         Env cpyEnv = this.env;
-        this.env = this.env.funcs[fname].func_env.dup;
-        this.execute(cpyEnv.funcs[fname].func_body);
+        this.env = this.env.variables[fname].getFunction.func_env.dup;
+        this.execute(cpyEnv.variables[fname].getFunction.func_body);
         this.env = cpyEnv;
         break;
       case tOpNop:
@@ -136,7 +121,7 @@ class VM {
         foreach (_; 0 .. op_blocks_length.getLong) {
           func_body ~= code[pc++ + 1];
         }
-        this.env.funcs[func_name] = new VMFunction(func_name, func_body, env.dup);
+        this.env.variables[func_name] = new IValue(new VMFunction(func_name, func_body, env.dup));
         break;
       case tOpEqualExpression:
         IValue a = stack.pop, b = stack.pop;
@@ -211,6 +196,8 @@ class VM {
           throw new Exception("Execute Error Invalid Condition <string>");
         case Array:
           throw new Exception("Execute Error Invalid Condition <array>");
+        case Function:
+          throw new Exception("Execute Error Invalid Condition <function>");
         case Null:
           condResult = false;
           break;
