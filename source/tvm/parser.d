@@ -33,7 +33,7 @@ PARSER:
   CallExpression < Symbol ParameterList
   ArrayElementSetExpression < Variable "[" Integer "]" "=" Expression
   ArrayElementGetExpression < Variable "[" Integer "]"
-  
+
   CompareExpression < EqualExpression / NotEqualExpression / LtExpression / LteExpression / GtExpression / GteExpression
   EqualExpression < Expression "==" Expression
   NotEqualExpression < Expression "!=" Expression
