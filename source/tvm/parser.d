@@ -152,7 +152,7 @@ class Symbol : AST {
   }
 
   override string toString() {
-    return "Symbol <%s>".format(ident.toString);
+    return "Symbol: <%s>".format(ident.toString);
   }
 
   mixin(genTypeMethod!(typeof(this)));
@@ -293,7 +293,7 @@ class Parameter : AST {
   }
 
   override string toString() {
-    return "Parameter <%s>".format(expr.toString);
+    return "Parameter: <%s>".format(expr.toString);
   }
 
   mixin(genTypeMethod!(typeof(this)));
@@ -314,7 +314,7 @@ class ParameterList : AST {
     foreach (parameter; parameters) {
       s_parameters ~= parameter.toString;
     }
-    return "ParamterList <[%s]>".format(s_parameters.join(", "));
+    return "ParamterList: <[%s]>".format(s_parameters.join(", "));
   }
 
   mixin(genTypeMethod!(typeof(this)));
@@ -623,7 +623,7 @@ class CallExpression : Expression {
   }
 
   override string toString() {
-    return "CallExpression <%s, ParameterList: %s>".format(symbol.toString, parameters.toString);
+    return "CallExpression <%s, %s>".format(symbol.toString, parameters.toString);
   }
 
   mixin(genTypeMethod!(typeof(this)));
