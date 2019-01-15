@@ -84,7 +84,7 @@ class VariableStore {
     // 親がいるか判定する．
     if (this.hasSuper) {
       // 親がいる場合，親がkeyを持っているかを判定する
-      if (this.superStore.has(key)) {
+      if (this.superHas(key)) {
         // 持っている場合，保護対象として，protectedsに追加し，保存する．
         this.protecteds ~= key;
         this.store[key] = value;
@@ -132,16 +132,12 @@ class Env {
     this.vs = new VariableStore;
   }
 
-  Env dup() {
-    Env newEnv = new Env;
+  this(VariableStore vs) {
+    this.vs = new VariableStore(vs);
+  }
 
-    /*
-    foreach (key, value; this.variables) {
-      newEnv.variables[key] = value;
-    }
-*/
-    newEnv.vs = new VariableStore(this.vs);
-    return newEnv;
+  Env dup() {
+    return new Env(this.vs);
   }
 
   /**
