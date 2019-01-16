@@ -365,13 +365,13 @@ class VM {
         break;
       case tOpSetArrayElement:
         auto variable = (cast(IValue)code[pc++ + 1]).getString;
-        auto idx = (cast(IValue)code[pc++ + 1]).getLong;
+        auto idx = stack.pop().getLong;
         auto val = stack.pop;
         env.get(variable).setArrayElement(idx, val);
         break;
       case tOpGetArrayElement:
         auto variable = (cast(IValue)code[pc++ + 1]).getString;
-        auto idx = (cast(IValue)code[pc++ + 1]).getLong;
+        auto idx = stack.pop().getLong;
         stack.push(env.get(variable)[idx]);
         break;
       case tOpMakeArray:

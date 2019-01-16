@@ -259,14 +259,9 @@ Opcode[] compileASTtoOpcode(AST ast) {
       throw new Error("Compile Error on <%s>".format(ast.type));
     }
     Opcode[] idx_op = compileASTtoOpcode(arrayElemSetExpr.idx);
-    if (idx_op.length == 2 && idx_op[0].type == OpcodeType.tOpPush) {
-      idx_op = idx_op[1 .. $];
-    } else {
-      throw new Error("Compile Error on <%s>".format(ast.type));
-    }
     Opcode[] rexpr_op = compileASTtoOpcode(arrayElemSetExpr.rexpr);
 
-    return rexpr_op ~ opSetArrayElement ~ variable_op ~ idx_op;
+    return rexpr_op ~ idx_op ~ opSetArrayElement ~ variable_op;
   case tArrayElementGetExpression:
     auto arrayElemGetExpr = cast(ArrayElementGetExpression)ast;
     Opcode[] variable_op = compileASTtoOpcode(arrayElemGetExpr.variable);
@@ -276,12 +271,7 @@ Opcode[] compileASTtoOpcode(AST ast) {
       throw new Error("Compile Error on <%s>".format(ast.type));
     }
     Opcode[] idx_op = compileASTtoOpcode(arrayElemGetExpr.idx);
-    if (idx_op.length == 2 && idx_op[0].type == OpcodeType.tOpPush) {
-      idx_op = idx_op[1 .. $];
-    } else {
-      throw new Error("Compile Error on <%s>".format(ast.type));
-    }
 
-    return opGetArrayElement ~ variable_op ~ idx_op;
+    return idx_op ~ opGetArrayElement ~ variable_op;
   }
 }
