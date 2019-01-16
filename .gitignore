@@ -12,3 +12,7 @@ tvm-test-*
 *.o
 *.obj
 *.lst
+
+*.sw*
+
+*.tvm
