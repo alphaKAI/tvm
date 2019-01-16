@@ -31,16 +31,13 @@ Opcode[] compileASTtoOpcode(AST ast) {
     return [opPush, new IValue(value.value)];
   case tArrayLiteral:
     auto value = cast(ArrayLiteral)ast;
-    IValue[] array;
+    Opcode[] elements;
+    size_t array_size;
     foreach (elem; value.value) {
-      auto temp = compileASTtoOpcode(elem);
-      if (temp.length == 2 && temp[0].type == OpcodeType.tOpPush) {
-        array ~= cast(IValue)temp[1];
-      } else {
-        throw new Error("ERROR, compile array");
-      }
+      elements ~= compileASTtoOpcode(elem);
+      array_size++;
     }
-    return [opPush, new IValue(array)];
+    return elements ~ opMakeArray ~ new IValue(array_size);
   case tParameter:
     auto param = cast(Parameter)ast;
     assert(param !is null, "Compile Error on <%s>".format(ast.type));

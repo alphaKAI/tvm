@@ -274,7 +274,6 @@ class VM {
         foreach (_; 0 .. op_blocks_length.getLong) {
           func_body ~= code[pc++ + 1];
         }
-        //this.env.variables[func_name] = new IValue(new VMFunction(func_name, func_body, env.dup));
         this.env.def(func_name, new IValue(new VMFunction(func_name, func_body, env.dup)));
         break;
       case tOpEqualExpression:
@@ -374,6 +373,15 @@ class VM {
         auto variable = (cast(IValue)code[pc++ + 1]).getString;
         auto idx = (cast(IValue)code[pc++ + 1]).getLong;
         stack.push(env.get(variable)[idx]);
+        break;
+      case tOpMakeArray:
+        long array_size = (cast(IValue)code[pc++ + 1]).getLong;
+        IValue[] array;
+        array.length = array_size;
+        foreach_reverse (i; 0 .. array_size) {
+          array[i] = stack.pop();
+        }
+        stack.push(new IValue(array));
         break;
       case tIValue:
         throw new Error("IValue should not peek directly");
