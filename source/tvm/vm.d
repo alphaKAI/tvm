@@ -1,6 +1,6 @@
 module tvm.vm;
 import tvm.parser, tvm.value, tvm.util, tvm.opcode;
-import std.algorithm, std.format, std.conv;
+import std.typecons, std.algorithm, std.format, std.conv;
 import std.stdio;
 
 class VariableStore {
@@ -26,31 +26,6 @@ class VariableStore {
    */
 
   /**
-    * keyに対応するIValueを返す．
-    */
-  IValue get(string key) {
-    // 親が存在するかを判定する
-    if (this.hasSuper) {
-      // 保護されている場合，このインスタンスのstoreから参照する
-      if (this.protecteds.canFind(key)) {
-        return this.store[key];
-      } else {
-        // 親がkeyを持っているかみる
-        if (this.superHas(key)) {
-          // 持っている場合，親から参照する
-          return this.superStore.get(key);
-        } else {
-          // 持っていない場合，現在のインスタンスから参照する．
-          return this.store[key];
-        }
-      }
-    } else {
-      // 親が存在しないので，現在のインスタンスから参照する．
-      return this.store[key];
-    }
-  }
-
-  /**
     * superクラスのstoreにkeyに対応するIValueが存在するかを判定する
     */
   bool superHas(string key) {
@@ -74,6 +49,58 @@ class VariableStore {
     ret |= (key in this.store ? true : false);
 
     return ret;
+  }
+
+  alias HasPtrResult = Tuple!(IValue*, "iv", VariableStore, "that");
+
+  /**
+    * superクラスのstoreにkeyに対応するIValueが存在するかを判定する
+    */
+  HasPtrResult superHas_ptr(string key) {
+    if (this.hasSuper) {
+      return this.superStore.has_ptr(key);
+    } else {
+      return HasPtrResult.init;
+    }
+  }
+
+  /**
+    * 現在のインスタンス，もしくは親に，keyに対応するIValueが存在するかを判定する
+    */
+  HasPtrResult has_ptr(string key) {
+    HasPtrResult ret = tuple(key in this.store, this);
+
+    if (ret.iv is null && this.hasSuper) {
+      ret = this.superStore.has_ptr(key);
+    }
+
+    return ret;
+  }
+
+  /**
+    * keyに対応するIValueを返す．
+    */
+  IValue get(string key) {
+    // 親が存在するかを判定する
+    if (this.hasSuper) {
+      // 保護されている場合，このインスタンスのstoreから参照する
+      if (this.protecteds.canFind(key)) {
+        return this.store[key];
+      } else {
+        // 親がkeyを持っているかみる
+        auto ptr = this.superHas_ptr(key);
+        if (ptr.iv !is null) {
+          // 持っている場合，親から参照する
+          return *ptr.iv;
+        } else {
+          // 持っていない場合，現在のインスタンスから参照する．
+          return this.store[key];
+        }
+      }
+    } else {
+      // 親が存在しないので，現在のインスタンスから参照する．
+      return this.store[key];
+    }
   }
 
   /**
@@ -110,9 +137,10 @@ class VariableStore {
         this.store[key] = value;
       } else {
         // 保護されていない場合，親がkeyを持っているかをみる．
-        if (this.superHas(key)) {
+        auto ptr = this.superHas_ptr(key);
+        if (ptr.iv !is null) {
           // 親がkeyを持っている場合，親にsetさせる．
-          this.superStore.set(key, value);
+          ptr.that.set(key, value);
         } else {
           // 親がkeyを持っていない場合，自分のstoreを書き換える．
           this.store[key] = value;
