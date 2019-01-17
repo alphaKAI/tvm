@@ -3,6 +3,8 @@ import tvm.parser, tvm.value, tvm.util, tvm.opcode;
 import std.typecons, std.algorithm, std.format, std.conv;
 import std.stdio;
 
+alias HasPtrResult = Tuple!(IValue*, "iv", VariableStore, "that");
+
 class VariableStore {
   private VariableStore superStore;
   private bool hasSuper;
@@ -40,18 +42,14 @@ class VariableStore {
     * 現在のインスタンス，もしくは親に，keyに対応するIValueが存在するかを判定する
     */
   bool has(string key) {
-    bool ret;
+    bool ret = key in this.store ? true : false;
 
     if (this.hasSuper) {
-      ret = this.superStore.has(key);
+      ret |= this.superStore.has(key);
     }
-
-    ret |= (key in this.store ? true : false);
 
     return ret;
   }
-
-  alias HasPtrResult = Tuple!(IValue*, "iv", VariableStore, "that");
 
   /**
     * superクラスのstoreにkeyに対応するIValueが存在するかを判定する
@@ -77,29 +75,58 @@ class VariableStore {
     return ret;
   }
 
-  /**
+  enum HIGH_PERFORMANCE = true;
+
+  static if (HIGH_PERFORMANCE) {
+    /**
     * keyに対応するIValueを返す．
     */
-  IValue get(string key) {
-    // 親が存在するかを判定する
-    if (this.hasSuper) {
-      // 保護されている場合，このインスタンスのstoreから参照する
-      if (this.protecteds.canFind(key)) {
-        return this.store[key];
-      } else {
-        // 親がkeyを持っているかみる
-        auto ptr = this.superHas_ptr(key);
-        if (ptr.iv !is null) {
-          // 持っている場合，親から参照する
-          return *ptr.iv;
-        } else {
-          // 持っていない場合，現在のインスタンスから参照する．
+    IValue get(string key) {
+      // 親が存在するかを判定する
+      if (this.hasSuper) {
+        // 保護されている場合，このインスタンスのstoreから参照する
+        if (this.protecteds.canFind(key)) {
           return this.store[key];
+        } else {
+          // 親がkeyを持っているかみる
+          auto ptr = this.superHas_ptr(key);
+          if (ptr.iv !is null) {
+            // 持っている場合，親から参照する
+            return *ptr.iv;
+          } else {
+            // 持っていない場合，現在のインスタンスから参照する．
+            return this.store[key];
+          }
         }
+      } else {
+        // 親が存在しないので，現在のインスタンスから参照する．
+        return this.store[key];
       }
-    } else {
-      // 親が存在しないので，現在のインスタンスから参照する．
-      return this.store[key];
+    }
+  } else {
+    /**
+    * keyに対応するIValueを返す．
+    */
+    IValue get(string key) {
+      // 親が存在するかを判定する
+      if (this.hasSuper) {
+        // 保護されている場合，このインスタンスのstoreから参照する
+        if (this.protecteds.canFind(key)) {
+          return this.store[key];
+        } else {
+          // 親がkeyを持っているかみる
+          if (this.superHas(key)) {
+            // 持っている場合，親から参照する
+            return this.superStore.get(key);
+          } else {
+            // 持っていない場合，現在のインスタンスから参照する．
+            return this.store[key];
+          }
+        }
+      } else {
+        // 親が存在しないので，現在のインスタンスから参照する．
+        return this.store[key];
+      }
     }
   }
 
@@ -125,30 +152,58 @@ class VariableStore {
     }
   }
 
-  /**
+  static if (HIGH_PERFORMANCE) {
+    /**
     * 変数に値を代入する
     */
-  void set(string key, IValue value) {
-    // 親が存在するかの確認
-    if (this.hasSuper) { //存在する
-      // 保護されている(つまり，現在のスコープで定義されている場合)場合は親を書き換えてはいけないので
-      // このインスタンスのstoreを書き換える．
-      if (this.protecteds.canFind(key)) {
-        this.store[key] = value;
-      } else {
-        // 保護されていない場合，親がkeyを持っているかをみる．
-        auto ptr = this.superHas_ptr(key);
-        if (ptr.iv !is null) {
-          // 親がkeyを持っている場合，親にsetさせる．
-          ptr.that.set(key, value);
-        } else {
-          // 親がkeyを持っていない場合，自分のstoreを書き換える．
+    void set(string key, IValue value) {
+      // 親が存在するかの確認
+      if (this.hasSuper) { //存在する
+        // 保護されている(つまり，現在のスコープで定義されている場合)場合は親を書き換えてはいけないので
+        // このインスタンスのstoreを書き換える．
+        if (this.protecteds.canFind(key)) {
           this.store[key] = value;
+        } else {
+          // 保護されていない場合，親がkeyを持っているかをみる．
+          auto ptr = this.superHas_ptr(key);
+          if (ptr.iv !is null) {
+            // 親がkeyを持っている場合，親にsetさせる．
+            ptr.that.set(key, value);
+          } else {
+            // 親がkeyを持っていない場合，自分のstoreを書き換える．
+            this.store[key] = value;
+          }
         }
+      } else {
+        // 存在しないなら現在のstoreを変更して良い
+        this.store[key] = value;
       }
-    } else {
-      // 存在しないなら現在のstoreを変更して良い
-      this.store[key] = value;
+    }
+  } else {
+    /**
+    * 変数に値を代入する
+    */
+    void set(string key, IValue value) {
+      // 親が存在するかの確認
+      if (this.hasSuper) { //存在する
+        // 保護されている(つまり，現在のスコープで定義されている場合)場合は親を書き換えてはいけないので
+        // このインスタンスのstoreを書き換える．
+        if (this.protecteds.canFind(key)) {
+          this.store[key] = value;
+        } else {
+          // 保護されていない場合，親がkeyを持っているかをみる．
+          if (this.superHas(key)) {
+            // 親がkeyを持っている場合，親にsetさせる．
+            this.superStore.set(key, value);
+          } else {
+            // 親がkeyを持っていない場合，自分のstoreを書き換える．
+            this.store[key] = value;
+          }
+        }
+      } else {
+        // 存在しないなら現在のstoreを変更して良い
+        this.store[key] = value;
+      }
     }
   }
 }
@@ -193,7 +248,14 @@ class Env {
     * Proxy of this.vs.has
     */
   bool has(string key) {
-    return this.vs.has(key);
+    return this.vs.has_ptr(key).iv !is null;
+  }
+
+  /**
+    * Proxy of this.vs.has
+    */
+  HasPtrResult has_ptr(string key) {
+    return this.vs.has_ptr(key);
   }
 }
 
@@ -273,8 +335,9 @@ class VM {
       case tOpGetVariable:
         auto v = cast(IValue)code[pc++ + 1];
         assert(v !is null, "Execute Error on tOpGetVariable");
-        if (this.env.has(v.getString)) {
-          stack.push(env.get(v.getString));
+        auto ptr = this.env.has_ptr(v.getString);
+        if (ptr.iv !is null) {
+          stack.push(*ptr.iv);
         } else {
           throw new Exception("No such a variable %s".format(v.getString));
         }
