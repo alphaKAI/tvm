@@ -1,6 +1,6 @@
 import std.stdio, std.file;
 import std.format, std.string;
-import tvm.parser, tvm.vm, tvm.compiler;
+import tvm.parser, tvm.vm, tvm.compiler, tvm.serializer, tvm.deserializer;
 
 void main(string[] args) {
   args = args[1 .. $];
@@ -20,10 +20,27 @@ void main(string[] args) {
         if (input == "exit") {
           break;
         }
-        auto code = input.PARSER.buildAST.compileASTtoOpcode;
-        //writeln("code : ", code);
+        //auto code = input.PARSER.buildAST.compileASTtoOpcode;
+        auto parsed = input.PARSER;
+        auto ast = parsed.buildAST;
+        auto code = ast.compileASTtoOpcode;
+        writeln("parsed : ", parsed);
+        writeln("ast : ", ast);
+        writeln("code : ", code);
         writeln("result : ", vm.execute(code));
+        writeln("serialize:");
+        auto serialized = serialize(code);
+        writeln("serialized : ", serialized);
+        auto deserialized = deserialize(serialized);
+        writeln("deserialized : ", deserialized);
+        writeln("code == deserialized : ", code == deserialized);
       }
+    } else if (args[0] == "-c" || args[0] == "--compile") {
+      compileFile(args[1]);
+    } else if (args[0] == "-e" || args[0] == "--execute") {
+      executeBinaryFile(args[1]);
+    } else if (args[0] == "-t" || args[0] == "--test") {
+      serializeTestFile(args[1]);
     } else {
       executeFile(args[0]);
     }
@@ -35,6 +52,65 @@ void executeFile(string file_path) {
   VM vm = new VM;
   writeln("code : ", code);
   writeln("result : ", vm.execute(code));
+  /*
+  auto input = readText(file_path);
+  auto parsed = input.PARSER;
+  auto ast = parsed.buildAST;
+  auto code = ast.compileASTtoOpcode;
+  writeln("parsed : ", parsed);
+  writeln("ast : ", ast);
+  writeln("code : ", code);
+  VM vm = new VM;
+  writeln("result : ", vm.execute(code));
+  */
+}
+
+void serializeTestFile(string file_path) {
+  auto input = readText(file_path);
+  auto parsed = input.PARSER;
+  auto ast = parsed.buildAST;
+  auto code = ast.compileASTtoOpcode;
+  writeln("parsed : ", parsed);
+  writeln("ast : ", ast);
+  writeln("code : ", code);
+  VM vm = new VM;
+  writeln("result : ", vm.execute(code));
+  writeln("serialize:");
+  auto serialized = serialize(code);
+  writeln("serialized : ", serialized);
+  auto deserialized = deserialize(serialized);
+  writeln("deserialized : ", deserialized);
+  writeln("code == deserialized : ", code == deserialized);
+
+  saveToFile(code, "compiled");
+  auto code2 = readFromFile("compiled");
+  writeln("code  : ", code);
+  writeln("code2 : ", code2);
+}
+
+void compileFile(string file_path) {
+  auto input = readText(file_path);
+  auto parsed = input.PARSER;
+  auto ast = parsed.buildAST;
+  auto code = ast.compileASTtoOpcode;
+
+  import std.path;
+
+  string out_path = baseName(file_path) ~ ".compiled";
+
+  writeln("Compile to file");
+  writeln("code : ", code);
+  writeln("out_path : ", out_path);
+
+  saveToFile(code, out_path);
+}
+
+void executeBinaryFile(string file_path) {
+  writeln("Execute Binery File : ", file_path);
+  auto code = readFromFile(file_path);
+  writeln("code : ", code);
+  VM vm = new VM;
+  vm.execute(code);
 }
 
 void fib_example() {
