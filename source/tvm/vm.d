@@ -259,6 +259,12 @@ class Env {
   }
 }
 
+class VMException : Exception {
+  this(string msg) {
+    super("VMException - " ~ msg);
+  }
+}
+
 class VM {
   Env env;
   Stack!IValue stack;
@@ -266,11 +272,7 @@ class VM {
   this() {
     this.env = new Env;
     this.stack = new Stack!IValue;
-    // dfmt off
-    this.env.def("sq", new IValue(new VMFunction("sq", [opSetVariablePop, new IValue("n"),
-                                                                opGetVariable, new IValue("n"),
-                                                                opGetVariable, new IValue("n"), opMul], env.dup)));
-    // dfmt on
+
     this.env.def("print", new IValue(new VMFunction("print", [opPrint], env)));
     this.env.def("println", new IValue(new VMFunction("println", [opPrintln], env)));
   }
@@ -392,11 +394,11 @@ class VM {
         stack.push(new IValue(a >= b));
         break;
       case tOpAndExpression:
-        IValue a = stack.pop, b = stack.pop;
+        bool a = stack.pop.getBool, b = stack.pop.getBool;
         stack.push(new IValue(a && b));
         break;
       case tOpOrExpression:
-        IValue a = stack.pop, b = stack.pop;
+        bool a = stack.pop.getBool, b = stack.pop.getBool;
         stack.push(new IValue(a || b));
         break;
       case tOpXorExpression:
@@ -476,6 +478,12 @@ class VM {
         break;
       case tIValue:
         throw new Error("IValue should not peek directly");
+      case tOpAssert:
+        auto msg = stack.pop().getString;
+        auto result = stack.pop().getBool;
+        if (!result) {
+          throw new VMException(msg);
+        }
       }
     }
     return stackPeekTop();

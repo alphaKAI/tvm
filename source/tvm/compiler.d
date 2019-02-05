@@ -273,5 +273,11 @@ Opcode[] compileASTtoOpcode(AST ast) {
     Opcode[] idx_op = compileASTtoOpcode(arrayElemGetExpr.idx);
 
     return idx_op ~ opGetArrayElement ~ variable_op;
+  case tAssertExpression:
+    auto assertExpression = cast(AssertExpression)ast;
+    Opcode[] cond_ops = compileASTtoOpcode(assertExpression.cond);
+    Opcode[] msg_ops = compileASTtoOpcode(assertExpression.msg);
+
+    return cond_ops ~ msg_ops ~ opAssert;
   }
 }

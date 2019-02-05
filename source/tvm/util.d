@@ -45,3 +45,31 @@ class Stack(T) {
     }
   }
 }
+
+R[] numeric_to_lower(T, R)(T v) {
+  R[] rets;
+  size_t T_size = T.sizeof;
+  size_t R_size = R.sizeof;
+  rets.length = T_size / R_size;
+
+  foreach (i; 0 .. (T_size / R_size)) {
+    rets[i] = v >> (R_size * i) & R.max;
+  }
+
+  return rets;
+}
+
+R lowers_to_numeric(T, R)(T[] inputs) {
+  R v;
+  size_t T_size = T.sizeof;
+  size_t R_size = R.sizeof;
+
+  foreach (i; 0 .. (R_size / T_size)) {
+    v |= inputs[i] << (T_size * i);
+  }
+
+  return v;
+}
+
+alias long_to_bytes = numeric_to_lower!(long, ubyte);
+alias bytes_to_long = lowers_to_numeric!(ubyte, long);

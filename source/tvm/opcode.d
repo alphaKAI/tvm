@@ -35,6 +35,7 @@ enum OpcodeType {
   tOpPrintln,
   tOpIFStatement,
   tOpAssignExpression,
+  tOpAssert,
   tIValue
 }
 

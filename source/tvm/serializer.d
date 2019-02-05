@@ -160,6 +160,9 @@ SerializedType[] serialize(Opcode[] code) {
       IValue var_name = cast(IValue)code[++idx];
       serialized ~= serialize([var_name]);
       break;
+    case tOpAssert:
+      serialized ~= opcode_to_opnum[type];
+      break;
     case tIValue:
       throw new Error("<Serialize> Not supported %s".format(type));
     }

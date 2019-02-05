@@ -213,6 +213,9 @@ Opcode[] deserialize(SerializedType[] serialized) {
     case tOpAssignExpression:
       procWith1Arg(opAssignExpression, idx);
       break;
+    case tOpAssert:
+      code ~= opAssert;
+      break;
     case tIValue:
       throw new Error("<Deserialize> Not supported %s".format(type));
     }

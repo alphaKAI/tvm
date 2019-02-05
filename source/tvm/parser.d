@@ -7,32 +7,37 @@ mixin(grammar(`
 PARSER:
   TopLevel < StatementList / Statement
 
+  Statement < FunctionDeclare / IFStatement / ForStatement / WhileStatement / ((VariableDeclare / Expression) ";")
+  StatementList < Statement+
+
   Declare < FunctionDeclare / VariableDeclare
+
   FunctionDeclare < "function" Symbol ParameterList Block
+  ParameterList < "()" / :"(" Parameter ("," Parameter)* :")"
+  Parameter < Expression
   Symbol < Identifier
+  Block < "{" StatementList? "}"
 
   VariableDeclare < VariableDeclareWithAssign / VariableDeclareOnlySymbol
   VariableDeclareOnlySymbol < "var" LeftValue
   VariableDeclareWithAssign < "var" LeftValue "=" Expression
 
-  ParameterList < "()" / :"(" Parameter ("," Parameter)* :")"
-  Parameter < Expression
+  IFStatement < "if" :"(" Expression :")" Block ("else" Block)?
+  ForStatement < "for" :"(" VariableDeclare ";" Expression ";" Expression :")" Block
+  WhileStatement < "while" :"(" Expression :")" Block
 
   Value < LeftValue / RightValue
   LeftValue < Variable
   Variable < Identifier
   RightValue < Integer / StringLiteral / BooleanLiteral / ArrayLiteral
-  AssignExpression < LeftValue "=" Expression
-  ReturnExpression < "return" Expression
-  MathExpression < AddExpression / SubExpression / MulExpression / DivExpression / ModExpression
-  AddExpression < Expression "+" Expression
-  SubExpression < Expression "-" Expression
-  MulExpression < Expression "*" Expression
-  DivExpression < Expression "/" Expression
-  ModExpression < Expression "%" Expression
-  CallExpression < Symbol ParameterList
-  ArrayElementSetExpression < Variable "[" Expression "]" "=" Expression
-  ArrayElementGetExpression < Variable "[" Expression "]"
+
+  Expression < ( CompareExpression / LogicExpression
+               / AssignExpression / MathExpression
+               / AssertExpression
+               / Parens
+               / CallExpression / ReturnExpression
+               / ArrayElementSetExpression / ArrayElementGetExpression
+               / Value)
 
   CompareExpression < EqualExpression / NotEqualExpression / LtExpression / LteExpression / GtExpression / GteExpression
   EqualExpression < Expression "==" Expression
@@ -47,23 +52,29 @@ PARSER:
   OrExpression < Expression "||" Expression
   XorExpression < Expression "^" Expression
 
-  Expression < CompareExpression / LogicExpression / AssignExpression / MathExpression / Parens / CallExpression / ReturnExpression / ArrayElementSetExpression / ArrayElementGetExpression / Value
+  AssignExpression < LeftValue "=" Expression
+
+  MathExpression < AddExpression / SubExpression / MulExpression / DivExpression / ModExpression
+  AddExpression < Expression "+" Expression
+  SubExpression < Expression "-" Expression
+  MulExpression < Expression "*" Expression
+  DivExpression < Expression "/" Expression
+  ModExpression < Expression "%" Expression
+
   Parens < :"(" Expression :")"
 
-  IFStatement < "if" :"(" Expression :")" Block ("else" Block)?
-  ForStatement < "for" :"(" VariableDeclare ";" Expression ";" Expression :")" Block
-  WhileStatement < "while" :"(" Expression :")" Block
+  CallExpression < Symbol ParameterList
+  ReturnExpression < "return" Expression
 
-  Statement < FunctionDeclare / IFStatement / ForStatement / WhileStatement / ((VariableDeclare / Expression) ";")
-  StatementList < Statement+
+  ArrayElementSetExpression < Variable "[" Expression "]" "=" Expression
+  ArrayElementGetExpression < Variable "[" Expression "]"
 
-  Block < "{" StatementList? "}"
+  AssertExpression < "assert" :"(" Expression "," StringLiteral :")"
 
   BooleanLiteral < "true" / "false"
-
   ArrayLiteral < "[]" / "[" Expression ("," Expression)* "]"
-
   Integer <~ digit+
+
   Identifier <~ !Keyword [a-zA-Z_] [a-zA-Z0-9_]*
   Keyword <- "function" / "var" / "if" / "for" / "else" / "true" / "false"
   StringLiteral <~ doublequote (DQChar)* doublequote
@@ -112,7 +123,8 @@ enum ASTType {
   tXorExpression,
   tArrayLiteral,
   tArrayElementSetExpression,
-  tArrayElementGetExpression
+  tArrayElementGetExpression,
+  tAssertExpression
 }
 
 string genTypeMethod(T)() {
@@ -860,6 +872,26 @@ AST arrayElementGetExpression(Variable variable, Expression idx) {
   return new ArrayElementGetExpression(variable, idx);
 }
 
+class AssertExpression : Expression {
+  Expression cond;
+  StringLiteral msg;
+
+  this(Expression cond, StringLiteral msg) {
+    this.cond = cond;
+    this.msg = msg;
+  }
+
+  override string toString() {
+    return "AssertExpression <%s, %s>".format(this.cond.toString, this.msg.toString);
+  }
+
+  mixin(genTypeMethod!(typeof(this)));
+}
+
+AST assertExpression(Expression cond, StringLiteral msg) {
+  return new AssertExpression(cond, msg);
+}
+
 AST buildAST(ParseTree p) {
   /*
   import std.stdio;
@@ -1128,5 +1160,11 @@ AST buildAST(ParseTree p) {
     Expression idx = cast(Expression)buildAST(p.children[1]);
     assert(idx !is null, "Parse Error on %s<idx>".format(p.name));
     return arrayElementGetExpression(variable, idx);
+  case "PARSER.AssertExpression":
+    Expression cond = cast(Expression)buildAST(p.children[0]);
+    assert(cond !is null, "Parse Error on %s".format(p.name));
+    StringLiteral msg = cast(StringLiteral)buildAST(p.children[1]);
+    assert(msg !is null, "Parse Error on %s".format(p.name));
+    return assertExpression(cond, msg);
   }
 }
