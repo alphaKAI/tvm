@@ -7,7 +7,8 @@ mixin(grammar(`
 PARSER:
   TopLevel < StatementList / Statement
 
-  Statement < FunctionDeclare / IFStatement / ForStatement / WhileStatement / ((VariableDeclare / Expression) ";")
+  Statement < ( FunctionDeclare / IFStatement / ForStatement
+              / WhileStatement / ((VariableDeclare / Expression) ";") )
   StatementList < Statement+
 
   Declare < FunctionDeclare / VariableDeclare
@@ -28,7 +29,7 @@ PARSER:
 
   Value < LeftValue / RightValue
   LeftValue < Variable
-  Variable < Identifier
+  Variable  < Identifier
   RightValue < Integer / StringLiteral / BooleanLiteral / ArrayLiteral
 
   Expression < ( CompareExpression / LogicExpression
@@ -39,17 +40,18 @@ PARSER:
                / ArrayElementSetExpression / ArrayElementGetExpression
                / Value)
 
-  CompareExpression < EqualExpression / NotEqualExpression / LtExpression / LteExpression / GtExpression / GteExpression
-  EqualExpression < Expression "==" Expression
+  CompareExpression < ( EqualExpression / NotEqualExpression / LtExpression
+                      / LteExpression / GtExpression / GteExpression)
+  EqualExpression    < Expression "==" Expression
   NotEqualExpression < Expression "!=" Expression
-  LtExpression < Expression "<" Expression
+  LtExpression  < Expression "<" Expression
   LteExpression < Expression "<=" Expression
-  GtExpression < Expression ">" Expression
+  GtExpression  < Expression ">" Expression
   GteExpression < Expression ">=" Expression
 
   LogicExpression < AndExpression / OrExpression / XorExpression
   AndExpression < Expression "&&" Expression
-  OrExpression < Expression "||" Expression
+  OrExpression  < Expression "||" Expression
   XorExpression < Expression "^" Expression
 
   AssignExpression < LeftValue "=" Expression
@@ -174,10 +176,7 @@ AST symbol(Identifier ident) {
   return new Symbol(ident);
 }
 
-interface TopLevel : AST {
-}
-
-interface Statement : TopLevel {
+interface Statement : AST {
 }
 
 interface Expression : Statement {
@@ -282,8 +281,8 @@ AST booleanLit(bool value) {
 }
 
 class ArrayLiteral : RightValue {
-  Value[] value;
-  this(Value[] value) {
+  Expression[] value;
+  this(Expression[] value) {
     this.value = value;
   }
 
@@ -294,7 +293,7 @@ class ArrayLiteral : RightValue {
   mixin(genTypeMethod!(typeof(this)));
 }
 
-AST arrayLit(Value[] value) {
+AST arrayLit(Expression[] value) {
   return new ArrayLiteral(value);
 }
 
@@ -336,7 +335,7 @@ AST parameterList(Parameter[] parameters) {
   return new ParameterList(parameters);
 }
 
-class StatementList : TopLevel {
+class StatementList : AST {
   Statement[] statements;
 
   this(Statement[] statements) {
@@ -1141,9 +1140,9 @@ AST buildAST(ParseTree p) {
     auto e = p.matches[0];
     return ident(e);
   case "PARSER.ArrayLiteral":
-    Value[] array;
+    Expression[] array;
     foreach (elem; p.children) {
-      array ~= cast(Value)buildAST(elem);
+      array ~= cast(Expression)buildAST(elem);
     }
     return arrayLit(array);
   case "PARSER.ArrayElementSetExpression":
