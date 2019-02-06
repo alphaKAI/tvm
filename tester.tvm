@@ -1,0 +1,145 @@
+function test0() {
+  assert(1 == 1, "Equal Expression for int");
+  assert("abc" == "abc", "Equal Expression for string");
+  assert(false == false, "Equal Expression for bool");
+  assert([1, 2, 3] == [1, 2, 3], "Equal Expression for Array");
+
+  assert(1 != 2, "Not Equal Expression for int");
+  assert("abc" != "def", "Not Equal Expression for string");
+  assert(true != false, "Not Equal Expression for bool");
+  assert([1, 2, 3] != [1, 2, 4], "Not Equal Expression for Array");
+
+
+  assert(1 < 2, "Less Than Expression");
+  assert(1 <= 1, "Less Than Equal Expression");
+  assert(2 > 1, "Grater Than Expression");
+  assert(2 >= 2, "Grater Than Equal Expression");
+
+  assert((true && true) == true, "And Expression, t and t"); 
+  assert((true && false) == false, "And Expression, t and f"); 
+  assert((true || true) == true, "OR Expression, t or t"); 
+  assert((true || false) == true, "OR Expression, t or f"); 
+}
+
+function test1() {
+  var x = 10;
+  assert (x == 10, "tOpVariableDeclareWithAssign for int");
+  var x = "abc";
+  assert (x == "abc", "tOpVariableDeclareWithAssign for string");
+  var x = true;
+  assert (x == true, "tOpVariableDeclareWithAssign for bool");
+  var x = [1, "2", false];
+  assert (x == [1, "2", false], "tOpVariableDeclareWithAssign for array");
+  var y = 20;
+  var x = y;
+  assert (x == y, "tOpVariableDeclareWithAssign for variable");
+}
+
+function test2() {
+  x = 10;
+  assert (x == 10, "tOpAssignExpression for int");
+  x = "abc";
+  assert (x == "abc", "tOpAssignExpression for string");
+  x = true;
+  assert (x == true, "tOpAssignExpression for bool");
+  x = [1, "2", false];
+  assert (x == [1, "2", false], "tOpAssignExpression for array");
+  var x = 10;
+  var y = 20;
+  x = y;
+  assert (x == y, "tOpAssignExpression for variable");
+}
+
+function test3() {
+  function func_int() {
+    return 4;
+  }
+
+  assert(func_int() == 4, "tOpCall and tOpReturn of int");
+
+  function func_string() {
+    return "abc";
+  }
+
+  assert(func_string() == "abc", "tOpCall and tOpReturn of string");
+
+  function func_bool() {
+    return false;
+  }
+
+  assert(func_bool() == false, "tOpCall and tOpReturn of bool");
+
+  function func_array() {
+    return [1, "2", false];
+  }
+
+  assert(func_array() == [1, "2", false], "tOpCall and tOpReturn of array");
+}
+
+function test4() {
+  function neg(x) {
+    return 0 - x;
+  }
+
+  assert ((3 + 1) == 4, "tOpAdd");
+  assert ((3 - 1) == 2, "tOpSub");
+  assert ((1 - 3) == neg(2), "tOpSub - 2");
+  assert ((3 * 2) == 6, "tOpMul");
+  assert ((9 / 3) == 3, "tOpDiv");
+  assert ((15 % 4) == 3, "tOpMod");
+}
+
+function test5() {
+  var sum = 0;
+
+  for (var i = 0; i < 11; i = i + 1) {
+    sum = sum + i;
+  }
+  assert(sum == 55, "for statement");
+
+  sum = 0;
+  var i = 0;
+  while (i < 11) {
+    sum = sum + i;
+    i = i + 1;
+  }
+  assert(sum == 55, "while statement");
+}
+
+function test6() {
+  var arr = [0, 1, 2, 3, 4, 5];
+
+  for (var i = 0; i < 6; i = i + 1) {
+    var v = arr[i];
+    assert(v == i, "ArrayGetExpression");
+  }
+}
+
+function test7() {
+  var arr = [0, 1, 2, 3, 4, 5];
+
+  for (var i = 0; i < 6; i = i + 1) {
+    var v = arr[i];
+    var t = arr[(5 - i)];
+    arr[(5 - i)] = v;
+    arr[i] = t;
+  }
+
+  assert(arr == [0, 1, 2, 3, 4, 5], "ArrayGetExpression and ArraySetExpression");
+}
+
+
+var tests = [test0, test1, test2, test3, test4, test5, test6, test7];
+var tests_length = 8;
+
+for (var i = 0; i < tests_length; i = i + 1) {
+  print("Test for ");
+  println(i);
+  var test = tests[i];
+  test();
+  println(" -> OK");
+}
+
+
+
+println("ALL OF TESTS ARE PASSED");
