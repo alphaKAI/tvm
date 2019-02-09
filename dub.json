@@ -1,13 +1,12 @@
 {
 	"name": "tvm",
 	"authors": [
-		"庄司明洋"
+		"Akihiro Shoji"
 	],
-	"description": "A minimal D application.",
-	"copyright": "Copyright © 2018, 庄司明洋",
+	"description": "Toy virtual machine and JIT Engine with JavaScript Like Syntax ",
+	"copyright": "Copyright © 2018-2019, Akihiro Shoji",
 	"license": "proprietary",
 	"dependencies": {
-		"pegged": "~>0.4.2",
-		"llvm-d":"*"
-	}
+		"pegged": "~>0.4.2"
+  }
 }
