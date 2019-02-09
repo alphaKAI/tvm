@@ -21,7 +21,7 @@ println("Hello, world");
 
 ```js
 for (var i = 0; i < 10; i = i + 1) {
-	println(i);
+  println(i);
 }
 ```
 
@@ -34,8 +34,8 @@ function exec(f, x, y) { return f(x, y); }
 function mul(x, y) { return x * y; }
 ///足し算を行う関数を返す関数
 function retAdd() {
-	function add(x, y) { return x + y; }
-	return add;
+  function add(x, y) { return x + y; }
+  return add;
 }
 
 println(exec(mul, 3, 4));// -> 12
@@ -47,12 +47,12 @@ println(exec(retAdd(), 3, 4));// -> 7
 ```js
 /// カウンターとして動作するクロージャを返す関数
 function counter() {
-	var count = 0;
-	function countup() {
-		count = count + 1;
-		return count;
-	}
-	return countup;
+  var count = 0;
+  function countup() {
+    count = count + 1;
+    return count;
+  }
+  return countup;
 }
 
 var c = counter();
