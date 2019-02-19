@@ -5,7 +5,7 @@
 	],
 	"description": "Toy virtual machine and JIT Engine with JavaScript Like Syntax ",
 	"copyright": "Copyright © 2018-2019, Akihiro Shoji",
-	"license": "proprietary",
+	"license": "MIT",
 	"dependencies": {
 		"pegged": "~>0.4.2"
   }
